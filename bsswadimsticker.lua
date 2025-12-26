@@ -10,7 +10,7 @@ local LocalPlayer = Players.LocalPlayer
 local ScriptRunning = true
 
 -- Dateiname für Config
-local FileName = "BeeSwarmRayfield_" .. LocalPlayer.UserId .. ".json"
+local FileName = "BeeSwarmSchlipSchlop_" .. LocalPlayer.UserId .. ".json"
 
 -- Standard Werte
 local Settings = {
@@ -54,7 +54,7 @@ LoadConfig()
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-    Name = "Bee Swarm Script",
+    Name = "bss schlip schlop",
     LoadingTitle = "Loading...",
     LoadingSubtitle = "hoppe hoppe reiter ich hoff ich leb nicht weiter",
     ConfigurationSaving = {
@@ -67,7 +67,7 @@ local Window = Rayfield:CreateWindow({
 local FarmTab = Window:CreateTab("Generators", 4483362458)
 
 FarmTab:CreateToggle({
-    Name = "Auto Bronze Star Amulet (+Reject)",
+    Name = "Auto Bronze Star Amulet (+Reject) (für sticker)",
     CurrentValue = Settings.BronzeStar,
     Flag = "BronzeStar", 
     Callback = function(Value)
@@ -77,7 +77,7 @@ FarmTab:CreateToggle({
 })
 
 FarmTab:CreateToggle({
-    Name = "Auto Diamond Star Amulet (+Reject)",
+    Name = "Auto Diamond Star Amulet (+Reject) (für sticker)",
     CurrentValue = Settings.DiamondStar,
     Flag = "DiamondStar",
     Callback = function(Value)
@@ -219,6 +219,6 @@ task.spawn(function()
             end)
         end
         
-        task.wait(1.05)
+        task.wait(3.05)
     end
 end)
