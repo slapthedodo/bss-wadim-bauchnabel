@@ -189,10 +189,15 @@ task.spawn(function()
                 ReplicatedStorage.Events.ToyEvent:FireServer(unpack(args))
                 
                 -- Warten bis der Reject-Button klickbar ist
-                local NoButton = LocalPlayer.PlayerGui.ScreenGui.RewardsPopUp:WaitForChild("NoButton", 3)
-                if NoButton then
-                    repeat task.wait() until NoButton.Visible or not Settings.BronzeStar
-                    firesignal(NoButton.MouseButton1Click)
+                local RewardsPopUp = LocalPlayer.PlayerGui.ScreenGui:WaitForChild("RewardsPopUp", 3)
+                if RewardsPopUp then
+                    local NoButton = RewardsPopUp:WaitForChild("NoButton", 3)
+                    if NoButton then
+                        -- Wir warten bis das Parent (der Screen) sichtbar ist oder das Element selbst
+                        repeat task.wait(0.1) until (NoButton.Visible and RewardsPopUp.Visible) or not Settings.BronzeStar
+                        task.wait(0.1) -- Kleiner Buffer
+                        firesignal(game:GetService("Players").LocalPlayer.PlayerGui.ScreenGui.RewardsPopUp.NoButton.MouseButton1Click)
+                    end
                 end
             end)
         end
@@ -204,10 +209,14 @@ task.spawn(function()
                 ReplicatedStorage.Events.ToyEvent:FireServer(unpack(args))
                 
                 -- Warten bis der Reject-Button klickbar ist
-                local NoButton = LocalPlayer.PlayerGui.ScreenGui.RewardsPopUp:WaitForChild("NoButton", 3)
-                if NoButton then
-                    repeat task.wait() until NoButton.Visible or not Settings.DiamondStar
-                    firesignal(NoButton.MouseButton1Click)
+                local RewardsPopUp = LocalPlayer.PlayerGui.ScreenGui:WaitForChild("RewardsPopUp", 3)
+                if RewardsPopUp then
+                    local NoButton = RewardsPopUp:WaitForChild("NoButton", 3)
+                    if NoButton then
+                        repeat task.wait(0.1) until (NoButton.Visible and RewardsPopUp.Visible) or not Settings.DiamondStar
+                        task.wait(0.1) -- Kleiner Buffer
+                        firesignal(game:GetService("Players").LocalPlayer.PlayerGui.ScreenGui.RewardsPopUp.NoButton.MouseButton1Click)
+                    end
                 end
             end)
         end
