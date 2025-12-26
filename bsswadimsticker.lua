@@ -17,8 +17,94 @@ local Settings = {
     BronzeStar = false,
     DiamondStar = false,
     FieldDice = false,
-    Snowflake = false
+    Snowflake = false,
+    ShowCooldowns = false
 }
+
+-- UI für Cooldowns
+local CooldownGui = Instance.new("ScreenGui")
+CooldownGui.Name = "BSSCooldowns"
+CooldownGui.ResetOnSpawn = false
+CooldownGui.Enabled = true
+
+-- Prüfen ob CoreGui verfügbar ist (für Exploits üblich), sonst PlayerGui
+local successGui, errGui = pcall(function()
+    CooldownGui.Parent = CoreGui
+end)
+if not successGui then
+    CooldownGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+end
+
+local CooldownContainer = Instance.new("Frame")
+CooldownContainer.Name = "Container"
+CooldownContainer.Size = UDim2.new(0, 200, 0, 100)
+CooldownContainer.Position = UDim2.new(0.05, 0, 0.7, 0)
+CooldownContainer.BackgroundTransparency = 1
+CooldownContainer.Parent = CooldownGui
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Padding = UDim.new(0, 5)
+UIListLayout.Parent = CooldownContainer
+
+local function CreateCooldownBar(name, color)
+    local Frame = Instance.new("Frame")
+    Frame.Name = name
+    Frame.Size = UDim2.new(1, 0, 0, 20)
+    Frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    Frame.BackgroundTransparency = 0.5
+    Frame.BorderSizePixel = 0
+    Frame.Visible = false
+    Frame.Parent = CooldownContainer
+
+    local Bar = Instance.new("Frame")
+    Bar.Name = "Bar"
+    Bar.Size = UDim2.new(0, 0, 1, 0)
+    Bar.BackgroundColor3 = color
+    Bar.BackgroundTransparency = 0.3
+    Bar.BorderSizePixel = 0
+    Bar.Parent = Frame
+
+    local TextLabel = Instance.new("TextLabel")
+    TextLabel.Size = UDim2.new(1, 0, 1, 0)
+    TextLabel.BackgroundTransparency = 1
+    TextLabel.Text = name
+    TextLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TextLabel.TextSize = 14
+    TextLabel.Font = Enum.Font.SourceSansBold
+    TextLabel.Parent = Frame
+
+    return Frame
+end
+
+local Bars = {
+    Stars = CreateCooldownBar("Stars & Dice", Color3.fromRGB(255, 200, 0)),
+    Snowflake = CreateCooldownBar("Snowflake", Color3.fromRGB(0, 255, 255))
+}
+
+local function UpdateBar(barName, duration)
+    local barFrame = Bars[barName]
+    if not Settings.ShowCooldowns or not barFrame then 
+        if barFrame then barFrame.Visible = false end
+        return 
+    end
+    
+    -- Sichtbarkeit prüfen basierend auf Toggles
+    if barName == "Stars" then
+        barFrame.Visible = (Settings.BronzeStar or Settings.DiamondStar or Settings.FieldDice)
+    elseif barName == "Snowflake" then
+        barFrame.Visible = Settings.Snowflake
+    end
+
+    if not barFrame.Visible then return end
+
+    local bar = barFrame:FindFirstChild("Bar")
+    if bar then
+        bar:TweenSize(UDim2.new(1, 0, 1, 0), "Out", "Linear", 0, true) -- Reset
+        bar.Size = UDim2.new(1, 0, 1, 0)
+        bar:TweenSize(UDim2.new(0, 0, 1, 0), "Out", "Linear", duration, true)
+    end
+end
 
 -- [FUNKTIONEN] Speichern und Laden
 local function SaveConfig()
@@ -43,6 +129,7 @@ local function LoadConfig()
             if result.DiamondStar ~= nil then Settings.DiamondStar = result.DiamondStar end
             if result.FieldDice ~= nil then Settings.FieldDice = result.FieldDice end
             if result.Snowflake ~= nil then Settings.Snowflake = result.Snowflake end
+            if result.ShowCooldowns ~= nil then Settings.ShowCooldowns = result.ShowCooldowns end
         end
     end
 end
@@ -67,7 +154,7 @@ local Window = Rayfield:CreateWindow({
 local FarmTab = Window:CreateTab("Generators", 4483362458)
 
 FarmTab:CreateToggle({
-    Name = "Auto Bronze Star Amulet (+Reject) (für sticker) test",
+    Name = "Auto Bronze Star Amulet (+Reject) (für sticker)",
     CurrentValue = Settings.BronzeStar,
     Flag = "BronzeStar", 
     Callback = function(Value)
@@ -173,8 +260,26 @@ SettingsTab:CreateButton({
         
         -- 2. Rayfield zerstören
         Rayfield:Destroy()
+
+        -- 3. UI zerstören
+        if CooldownGui then CooldownGui:Destroy() end
         
         print("Script unloaded successfully.")
+    end,
+})
+
+SettingsTab:CreateToggle({
+    Name = "Show Cooldowns",
+    CurrentValue = Settings.ShowCooldowns,
+    Flag = "ShowCooldowns",
+    Callback = function(Value)
+        Settings.ShowCooldowns = Value
+        if not Value then
+            for _, frame in pairs(Bars) do
+                frame.Visible = false
+            end
+        end
+        SaveConfig()
     end,
 })
 
@@ -182,11 +287,13 @@ SettingsTab:CreateButton({
 -- Loop 1: Stars und Field Dice (1.05s)
 task.spawn(function()
     while ScriptRunning do
+        local usedAny = false
         -- 1. Bronze Star Logic
         if Settings.BronzeStar then
             pcall(function()
                 local args = {[1] = "Bronze Star Amulet Generator"}
                 ReplicatedStorage.Events.ToyEvent:FireServer(unpack(args))
+                usedAny = true
             end)
         end
 
@@ -195,6 +302,7 @@ task.spawn(function()
             pcall(function()
                 local args = {[1] = "Diamond Star Amulet Generator"}
                 ReplicatedStorage.Events.ToyEvent:FireServer(unpack(args))
+                usedAny = true
             end)
         end
 
@@ -203,7 +311,12 @@ task.spawn(function()
             pcall(function()
                 local args = {[1] = {["Name"] = "Field Dice"}}
                 ReplicatedStorage.Events.PlayerActivesCommand:FireServer(unpack(args))
+                usedAny = true
             end)
+        end
+        
+        if usedAny then
+            UpdateBar("Stars", 1.05)
         end
         
         task.wait(1.05)
@@ -217,6 +330,7 @@ task.spawn(function()
             pcall(function()
                 local args = {[1] = {["Name"] = "Snowflake"}}
                 ReplicatedStorage.Events.PlayerActivesCommand:FireServer(unpack(args))
+                UpdateBar("Snowflake", 3.05)
             end)
         end
         task.wait(3.05)
