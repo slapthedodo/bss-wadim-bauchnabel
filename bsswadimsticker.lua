@@ -6,7 +6,10 @@ local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
 
--- Dateiname für Config (Account-Spezifisch)
+-- Variable zum Steuern des Loops (für Unload wichtig)
+local ScriptRunning = true
+
+-- Dateiname für Config
 local FileName = "BeeSwarmRayfield_" .. LocalPlayer.UserId .. ".json"
 
 -- Standard Werte
@@ -18,6 +21,9 @@ local Settings = {
 
 -- [FUNKTIONEN] Speichern und Laden
 local function SaveConfig()
+    -- Nur speichern, wenn das Skript noch läuft
+    if not ScriptRunning then return end
+    
     local success, err = pcall(function()
         local json = HttpService:JSONEncode(Settings)
         writefile(FileName, json)
@@ -39,7 +45,7 @@ local function LoadConfig()
     end
 end
 
--- Config laden BEVOR UI startet
+-- Config laden
 LoadConfig()
 
 -- Rayfield Library laden
@@ -50,14 +56,14 @@ local Window = Rayfield:CreateWindow({
     LoadingTitle = "Loading...",
     LoadingSubtitle = "By Gemini",
     ConfigurationSaving = {
-        Enabled = false, -- Wir nutzen unser eigenes System
+        Enabled = false,
     },
     KeySystem = false,
 })
 
+-- TAB: Generators
 local FarmTab = Window:CreateTab("Generators", 4483362458)
 
--- Toggles erstellen
 FarmTab:CreateToggle({
     Name = "Auto Bronze Star Amulet (+Reject)",
     CurrentValue = Settings.BronzeStar,
@@ -88,8 +94,32 @@ FarmTab:CreateToggle({
     end,
 })
 
--- Der Mini-Button Oben Rechts
-local ScreenGui = Instance.new("ScreenGui")
+-- TAB: Settings (Für Unload)
+local SettingsTab = Window:CreateTab("Settings", 4483362458)
+
+-- Der Mini-Button Referenz (wird gleich erstellt)
+local ScreenGui 
+
+SettingsTab:CreateButton({
+    Name = "Unload Script (Stop & Close)",
+    Callback = function()
+        -- 1. Loop stoppen
+        ScriptRunning = false
+        
+        -- 2. Rayfield zerstören
+        Rayfield:Destroy()
+        
+        -- 3. Mini-Button zerstören
+        if ScreenGui then
+            ScreenGui:Destroy()
+        end
+        
+        print("Script unloaded successfully.")
+    end,
+})
+
+-- [MINI TOGGLE BUTTON ERSTELLEN]
+ScreenGui = Instance.new("ScreenGui")
 local ToggleBtn = Instance.new("TextButton")
 local UICorner = Instance.new("UICorner")
 
@@ -107,7 +137,7 @@ ScreenGui.Name = "RayfieldToggleMini"
 ToggleBtn.Name = "MiniButton"
 ToggleBtn.Parent = ScreenGui
 ToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-ToggleBtn.Position = UDim2.new(1, -40, 0, 10) -- Ganz rechts oben
+ToggleBtn.Position = UDim2.new(1, -40, 0, 10) 
 ToggleBtn.Size = UDim2.new(0, 30, 0, 30)
 ToggleBtn.Font = Enum.Font.FredokaOne
 ToggleBtn.Text = "UI"
@@ -129,18 +159,15 @@ end)
 
 -- [HAUPT LOGIK LOOP]
 task.spawn(function()
-    while true do
+    -- Der Loop läuft nur solange ScriptRunning wahr ist
+    while ScriptRunning do
+        
         -- 1. Bronze Star Logic
         if Settings.BronzeStar then
             pcall(function()
-                -- Generator aktivieren
                 local args = {[1] = "Bronze Star Amulet Generator"}
                 ReplicatedStorage.Events.ToyEvent:FireServer(unpack(args))
-                
-                -- Kurz warten, damit der Server den Roll registriert (Sicherheitspuffer)
-                task.wait(0.1) 
-                
-                -- Direkt ablehnen (Reject)
+                task.wait(0.05) 
                 ReplicatedStorage.Events.ClientRejectAmulet:FireServer()
             end)
         end
@@ -148,18 +175,14 @@ task.spawn(function()
         -- 2. Diamond Star Logic
         if Settings.DiamondStar then
             pcall(function()
-                -- Generator aktivieren
                 local args = {[1] = "Diamond Star Amulet Generator"}
                 ReplicatedStorage.Events.ToyEvent:FireServer(unpack(args))
-                
-                task.wait(0.1) 
-                
-                -- Direkt ablehnen (Reject)
+                task.wait(0.05) 
                 ReplicatedStorage.Events.ClientRejectAmulet:FireServer()
             end)
         end
 
-        -- 3. Field Dice Logic (Hat kein Reject)
+        -- 3. Field Dice Logic
         if Settings.FieldDice then
             pcall(function()
                 local args = {[1] = {["Name"] = "Field Dice"}}
@@ -167,6 +190,6 @@ task.spawn(function()
             end)
         end
         
-        task.wait(1.5) -- Loop Geschwindigkeit
+        task.wait(1.05)
     end
 end)
