@@ -156,6 +156,7 @@ pcall(function()
         Window:Minimize()
     end
 end)
+Rayfield:SetVisibility(false)
 
 -- TAB: Generators
 local FarmTab = Window:CreateTab("Generators", 4483362458)
