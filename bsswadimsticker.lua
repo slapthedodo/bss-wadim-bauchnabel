@@ -54,7 +54,7 @@ LoadConfig()
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-    Name = "bss schlip schlop benutzer schnittstelle",
+    Name = "testbss schlip schlop benutzer schnittstelle",
     LoadingTitle = "Loading...",
     LoadingSubtitle = "hoppe hoppe reiter ich hoff ich leb nicht weiter",
     ConfigurationSaving = {
