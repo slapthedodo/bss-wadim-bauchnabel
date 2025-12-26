@@ -1,1 +1,0 @@
-# bss-sticker-script
