@@ -211,7 +211,7 @@ FarmTab:CreateToggle({
 
 FarmTab:CreateSlider({
     Name = "Snowflake Delay",
-    Range = {0.1, 10},
+    Range = {1.05, 10},
     Increment = 0.05,
     Suffix = "s",
     CurrentValue = Settings.SnowflakeDelay,
