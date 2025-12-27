@@ -18,6 +18,10 @@ local Settings = {
     DiamondStar = false,
     FieldDice = false,
     Snowflake = false,
+    SnowflakeDelay = 3.05,
+    RedCannon = false,
+    BlueCannon = false,
+    YellowCannon = false,
     ShowCooldowns = true
 }
 
@@ -129,6 +133,10 @@ local function LoadConfig()
             if result.DiamondStar ~= nil then Settings.DiamondStar = result.DiamondStar end
             if result.FieldDice ~= nil then Settings.FieldDice = result.FieldDice end
             if result.Snowflake ~= nil then Settings.Snowflake = result.Snowflake end
+            if result.SnowflakeDelay ~= nil then Settings.SnowflakeDelay = result.SnowflakeDelay end
+            if result.RedCannon ~= nil then Settings.RedCannon = result.RedCannon end
+            if result.BlueCannon ~= nil then Settings.BlueCannon = result.BlueCannon end
+            if result.YellowCannon ~= nil then Settings.YellowCannon = result.YellowCannon end
             if result.ShowCooldowns ~= nil then Settings.ShowCooldowns = result.ShowCooldowns end
         end
     end
@@ -162,7 +170,7 @@ Rayfield:SetVisibility(false)
 local FarmTab = Window:CreateTab("Generators", 4483362458)
 
 FarmTab:CreateToggle({
-    Name = "Auto Bronze Star Amulet (+Reject) (für sticker)",
+    Name = "Auto Bronze Star Amulet",
     CurrentValue = Settings.BronzeStar,
     Flag = "BronzeStar", 
     Callback = function(Value)
@@ -172,7 +180,7 @@ FarmTab:CreateToggle({
 })
 
 FarmTab:CreateToggle({
-    Name = "Auto Diamond Star Amulet (+Reject) (für sticker)",
+    Name = "Auto Diamond Star Amulet",
     CurrentValue = Settings.DiamondStar,
     Flag = "DiamondStar",
     Callback = function(Value)
@@ -197,6 +205,51 @@ FarmTab:CreateToggle({
     Flag = "Snowflake",
     Callback = function(Value)
         Settings.Snowflake = Value
+        SaveConfig()
+    end,
+})
+
+FarmTab:CreateSlider({
+    Name = "Snowflake Delay",
+    Range = {0.1, 10},
+    Increment = 0.05,
+    Suffix = "s",
+    CurrentValue = Settings.SnowflakeDelay,
+    Flag = "SnowflakeDelay",
+    Callback = function(Value)
+        Settings.SnowflakeDelay = Value
+        SaveConfig()
+    end,
+})
+
+FarmTab:CreateSection("Cannons")
+
+FarmTab:CreateToggle({
+    Name = "Auto Red Cannon",
+    CurrentValue = Settings.RedCannon,
+    Flag = "RedCannon",
+    Callback = function(Value)
+        Settings.RedCannon = Value
+        SaveConfig()
+    end,
+})
+
+FarmTab:CreateToggle({
+    Name = "Auto Blue Cannon",
+    CurrentValue = Settings.BlueCannon,
+    Flag = "BlueCannon",
+    Callback = function(Value)
+        Settings.BlueCannon = Value
+        SaveConfig()
+    end,
+})
+
+FarmTab:CreateToggle({
+    Name = "Auto Yellow Cannon",
+    CurrentValue = Settings.YellowCannon,
+    Flag = "YellowCannon",
+    Callback = function(Value)
+        Settings.YellowCannon = Value
         SaveConfig()
     end,
 })
@@ -292,7 +345,7 @@ SettingsTab:CreateToggle({
 })
 
 -- [HAUPT LOGIK LOOP]
--- Loop 1: Stars und Field Dice (1.05s)
+-- Loop 1: Stars, Field Dice and Cannons (1.05s)
 task.spawn(function()
     while ScriptRunning do
         local usedAny = false
@@ -323,6 +376,28 @@ task.spawn(function()
             end)
         end
         
+        -- 4. Cannon Logic
+        if Settings.RedCannon then
+            pcall(function()
+                ReplicatedStorage.Events.ToyEvent:FireServer("Red Cannon")
+                usedAny = true
+            end)
+        end
+        
+        if Settings.BlueCannon then
+            pcall(function()
+                ReplicatedStorage.Events.ToyEvent:FireServer("Blue Cannon")
+                usedAny = true
+            end)
+        end
+        
+        if Settings.YellowCannon then
+            pcall(function()
+                ReplicatedStorage.Events.ToyEvent:FireServer("Yellow Cannon")
+                usedAny = true
+            end)
+        end
+        
         if usedAny then
             UpdateBar("Stars", 1.05)
         end
@@ -331,16 +406,16 @@ task.spawn(function()
     end
 end)
 
--- Loop 2: Snowflake (3.05s)
+-- Loop 2: Snowflake (Customizable Delay)
 task.spawn(function()
     while ScriptRunning do
         if Settings.Snowflake then
             pcall(function()
                 local args = {[1] = {["Name"] = "Snowflake"}}
                 ReplicatedStorage.Events.PlayerActivesCommand:FireServer(unpack(args))
-                UpdateBar("Snowflake", 3.05)
+                UpdateBar("Snowflake", Settings.SnowflakeDelay)
             end)
         end
-        task.wait(3.05)
+        task.wait(Settings.SnowflakeDelay)
     end
 end)
