@@ -656,8 +656,8 @@ task.spawn(function()
                 -- Rotation fixieren: Schaut nach oben (Bauch nach unten, Gesicht zum Himmel)
                 local upRotation = CFrame.Angles(math.rad(90), 0, 0)
                 
-                -- Ziel-Y ist fest auf -5
-                local targetY = 205
+                
+                local targetY = 505
                 
                 local TargetSlimeBlob = nil
                 for i = 1, 14 do
