@@ -11,7 +11,7 @@ local LocalPlayer = Players.LocalPlayer
 local ScriptRunning = true
 
 -- Variable for AutoClaimHive state (Setzt sich bei Join auf false)
-local HiveClaimedInRBC = false
+local HiveClaimedInretro = false
 
 -- Dateiname für Config
 local FileName = "BeeSwarmSchlipSchlop_" .. LocalPlayer.UserId .. ".json"
@@ -27,10 +27,11 @@ local Settings = {
     BlueCannon = false,
     YellowCannon = false,
     ShowCooldowns = true,
-    AutoRBC = false,
-    AutoRBCLobby = false,
-    RBCWalkspeed = false,
-    AutoClaimHive = false
+    Autoretro = false,
+    AutoretroLobby = false,
+    retroWalkspeed = false,
+    AutoClaimHive = false,
+    AutoHit = false
 }
 
 -- UI für Cooldowns
@@ -146,10 +147,11 @@ local function LoadConfig()
             if result.BlueCannon ~= nil then Settings.BlueCannon = result.BlueCannon end
             if result.YellowCannon ~= nil then Settings.YellowCannon = result.YellowCannon end
             if result.ShowCooldowns ~= nil then Settings.ShowCooldowns = result.ShowCooldowns end
-            if result.AutoRBC ~= nil then Settings.AutoRBC = result.AutoRBC end
-            if result.AutoRBCLobby ~= nil then Settings.AutoRBCLobby = result.AutoRBCLobby end
-            if result.RBCWalkspeed ~= nil then Settings.RBCWalkspeed = result.RBCWalkspeed end
+            if result.Autoretro ~= nil then Settings.Autoretro = result.Autoretro end
+            if result.AutoretroLobby ~= nil then Settings.AutoretroLobby = result.AutoretroLobby end
+            if result.retroWalkspeed ~= nil then Settings.retroWalkspeed = result.retroWalkspeed end
             if result.AutoClaimHive ~= nil then Settings.AutoClaimHive = result.AutoClaimHive end
+            if result.AutoHit ~= nil then Settings.AutoHit = result.AutoHit end
         end
     end
 end
@@ -167,8 +169,8 @@ end
 
 -- Wenn der Spieler respawnt, muss der Walkspeed neu gesetzt werden, falls aktiv
 LocalPlayer.CharacterAdded:Connect(function(Character)
-    -- Wenn RBC Walkspeed aktiv ist, setze ihn nach dem Respawn
-    if Settings.RBCWalkspeed and game.PlaceId == 17579225831 then
+    -- Wenn retro Walkspeed aktiv ist, setze ihn nach dem Respawn
+    if Settings.retroWalkspeed and game.PlaceId == 17579225831 then
         Character:WaitForChild("Humanoid").WalkSpeed = 70
     end
 end)
@@ -338,58 +340,58 @@ MaskTab:CreateButton({
     end,
 })
 
--- TAB: RBC
-local RBCTab = Window:CreateTab("RBC", 4483362458)
+-- TAB: retro
+local retroTab = Window:CreateTab("retro", 4483362458)
 
-RBCTab:CreateButton({
-    Name = "tp to rbc (atlas bypass and direct join)",
+retroTab:CreateButton({
+    Name = "tp to retro (atlas bypass and direct join)",
     Callback = function()
         TeleportService:Teleport(17579225831, LocalPlayer)
     end,
 })
 
-RBCTab:CreateButton({
-    Name = "tp to rbc lobby (atlas bypass)",
+retroTab:CreateButton({
+    Name = "tp to retro lobby (atlas bypass)",
     Callback = function()
         TeleportService:Teleport(17579226768, LocalPlayer)
     end,
 })
 
-RBCTab:CreateSection("atuo tp")
+retroTab:CreateSection("atuo tp")
 
-RBCTab:CreateToggle({
-    Name = "auto teleport rbc",
-    CurrentValue = Settings.AutoRBC,
-    Flag = "AutoRBC",
+retroTab:CreateToggle({
+    Name = "auto teleport retro",
+    CurrentValue = Settings.Autoretro,
+    Flag = "Autoretro",
     Callback = function(Value)
-        Settings.AutoRBC = Value
+        Settings.Autoretro = Value
         if Value then
-            Settings.AutoRBCLobby = false
-            -- Hier könnte man das UI-Element für AutoRBCLobby updaten, falls Rayfield das unterstützt
+            Settings.AutoretroLobby = false
+            -- Hier könnte man das UI-Element für AutoretroLobby updaten, falls Rayfield das unterstützt
         end
         SaveConfig()
     end,
 })
 
-RBCTab:CreateToggle({
-    Name = "auto teleport rbc lobby",
-    CurrentValue = Settings.AutoRBCLobby,
-    Flag = "AutoRBCLobby",
+retroTab:CreateToggle({
+    Name = "auto teleport retro lobby",
+    CurrentValue = Settings.AutoretroLobby,
+    Flag = "AutoretroLobby",
     Callback = function(Value)
-        Settings.AutoRBCLobby = Value
+        Settings.AutoretroLobby = Value
         if Value then
-            Settings.AutoRBC = false
+            Settings.Autoretro = false
         end
         SaveConfig()
     end,
 })
 
-RBCTab:CreateToggle({
-    Name = "RBC Walkspeed (70)",
-    CurrentValue = Settings.RBCWalkspeed,
-    Flag = "RBCWalkspeed",
+retroTab:CreateToggle({
+    Name = "retro Walkspeed (70)",
+    CurrentValue = Settings.retroWalkspeed,
+    Flag = "retroWalkspeed",
     Callback = function(Value)
-        Settings.RBCWalkspeed = Value
+        Settings.retroWalkspeed = Value
         SaveConfig()
         
         if game.PlaceId == 17579225831 then
@@ -400,12 +402,22 @@ RBCTab:CreateToggle({
     end,
 })
 
-RBCTab:CreateToggle({
+retroTab:CreateToggle({
     Name = "Auto Claim Hive",
     CurrentValue = Settings.AutoClaimHive,
     Flag = "AutoClaimHive",
     Callback = function(Value)
         Settings.AutoClaimHive = Value
+        SaveConfig()
+    end,
+})
+
+retroTab:CreateToggle({
+    Name = "autohit",
+    CurrentValue = Settings.AutoHit,
+    Flag = "AutoHit",
+    Callback = function(Value)
+        Settings.AutoHit = Value
         SaveConfig()
     end,
 })
@@ -524,9 +536,9 @@ end)
 task.spawn(function()
     while ScriptRunning do
         if game.PlaceId == 1537690962 then
-            if Settings.AutoRBC then
+            if Settings.Autoretro then
                 TeleportService:Teleport(17579225831, LocalPlayer)
-            elseif Settings.AutoRBCLobby then
+            elseif Settings.AutoretroLobby then
                 TeleportService:Teleport(17579226768, LocalPlayer)
             end
         end
@@ -542,7 +554,7 @@ end
 task.spawn(function()
     while ScriptRunning do
         if game.PlaceId == 17579225831 then
-            if Settings.RBCWalkspeed then
+            if Settings.retroWalkspeed then
                 SetWalkspeed(70)
             end
         end
@@ -554,13 +566,13 @@ end)
 task.spawn(function()
     while ScriptRunning do
         if game.PlaceId == 17579225831 then
-            if Settings.AutoClaimHive and not HiveClaimedInRBC then
-                HiveClaimedInRBC = true -- Verhindert mehrfaches Ausführen in der gleichen Session
+            if Settings.AutoClaimHive and not HiveClaimedInretro then
+                HiveClaimedInretro = true -- Verhindert mehrfaches Ausführen in der gleichen Session
                 
                 print("AutoClaimHive: Warte 10 Sekunden vor dem Claimen...")
                 task.wait(10)
                 
-                -- Nochmals prüfen, ob Toggle noch an ist und wir noch in RBC sind
+                -- Nochmals prüfen, ob Toggle noch an ist und wir noch in retro sind
                 if Settings.AutoClaimHive and game.PlaceId == 17579225831 then
                     print("Starte Auto Claim Hive (10, 9, 8, 7)...")
                     local claimValues = {10, 9, 8, 7}
@@ -574,15 +586,27 @@ task.spawn(function()
                     end
                     print("Auto Claim Hive Durchlauf beendet.")
                 else
-                    HiveClaimedInRBC = false -- Reset falls abgebrochen
+                    HiveClaimedInretro = false -- Reset falls abgebrochen
                 end
             end
         else
             -- Reset wenn man das Spiel verlässt
-            if HiveClaimedInRBC then
-                HiveClaimedInRBC = false
+            if HiveClaimedInretro then
+                HiveClaimedInretro = false
             end
         end
         task.wait(1)
+    end
+end)
+
+-- Loop 6: AutoHit (0.1s)
+task.spawn(function()
+    while ScriptRunning do
+        if Settings.AutoHit and game.PlaceId == 17579225831 then
+            pcall(function()
+                ReplicatedStorage.Events.ToolCollect:FireServer()
+            end)
+        end
+        task.wait(0.1)
     end
 end)
