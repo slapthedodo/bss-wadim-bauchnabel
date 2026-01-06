@@ -653,7 +653,7 @@ task.spawn(function()
                 -- Zu Startposition gehen
                 if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
                     local HumanoidRootPart = LocalPlayer.Character.HumanoidRootPart
-                    local startPos = Vector3.new(-47071.2852, 291.907898, 320.037537)
+                    local startPos = Vector3.new(-47190.1133, 290.470581, 186.999374)
                     local distance = (startPos - HumanoidRootPart.Position).Magnitude
                     local speed = 69
                     local duration = distance / speed
@@ -692,7 +692,7 @@ task.spawn(function()
                 
                 -- Rotation fixieren: Schaut nach oben (Bauch nach unten, Gesicht zum Himmel)
                 local upRotation = CFrame.Angles(math.rad(90), 0, 0)
-                local targetY = 285
+                local targetY = 282
 
                 -- Slime finden, der am nächsten an Z: 230 ist
                 local TargetSlimeBlob = nil
