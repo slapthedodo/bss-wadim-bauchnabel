@@ -692,7 +692,7 @@ task.spawn(function()
                 
                 -- Rotation fixieren: Schaut nach oben (Bauch nach unten, Gesicht zum Himmel)
                 local upRotation = CFrame.Angles(math.rad(90), 0, 0)
-                local targetY = 282
+                local targetY = 280
 
                 -- Slime finden, der am nächsten an Z: 230 ist
                 local TargetSlimeBlob = nil
