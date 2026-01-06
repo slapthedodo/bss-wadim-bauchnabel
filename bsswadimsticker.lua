@@ -568,9 +568,8 @@ task.spawn(function()
         if game.PlaceId == 17579225831 then
             if Settings.AutoClaimHive and not HiveClaimedInretro then
                 HiveClaimedInretro = true -- Verhindert mehrfaches Ausführen in der gleichen Session
-                
-                print("AutoClaimHive: Warte 10 Sekunden vor dem Claimen...")
-                task.wait(10)
+
+                task.wait(5)
                 
                 -- Nochmals prüfen, ob Toggle noch an ist und wir noch in retro sind
                 if Settings.AutoClaimHive and game.PlaceId == 17579225831 then
@@ -604,7 +603,7 @@ task.spawn(function()
     while ScriptRunning do
         if Settings.AutoHit and game.PlaceId == 17579225831 then
             pcall(function()
-                ReplicatedStorage.Events.ToolCollect:FireServer()
+                ReplicatedStorage.Events.ToolCollect:FireServer(LocalPlayer.Character.HumanoidRootPart.Position)
             end)
         end
         task.wait(0.1)
