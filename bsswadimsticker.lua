@@ -581,7 +581,7 @@ task.spawn(function()
             if Settings.AutoClaimHive and not HiveClaimedInretro then
                 HiveClaimedInretro = true -- Verhindert mehrfaches Ausführen in der gleichen Session
 
-                task.wait(5)
+                task.wait(2.5)
                 
                 -- Nochmals prüfen, ob Toggle noch an ist und wir noch in retro sind
                 if Settings.AutoClaimHive and game.PlaceId == 17579225831 then
@@ -657,7 +657,7 @@ task.spawn(function()
                 local upRotation = CFrame.Angles(math.rad(90), 0, 0)
                 
                 -- Ziel-Y ist fest auf -5
-                local targetY = 45
+                local targetY = 105
                 
                 local TargetSlimeBlob = nil
                 for i = 1, 14 do
