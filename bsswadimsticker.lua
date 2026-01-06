@@ -534,49 +534,55 @@ task.spawn(function()
     end
 end)
 
--- Loop 4: Walkspeed und AutoClaimHive (bei Join)
+-- Loop 4: Walkspeed (bei Join)
 if not game:IsLoaded() then
     game.Loaded:Wait()
 end
-print("Spiel geladen, starte Loop 4")
 
 task.spawn(function()
     while ScriptRunning do
         if game.PlaceId == 17579225831 then
-            -- Walkspeed setzen, falls aktiv
             if Settings.RBCWalkspeed then
                 SetWalkspeed(70)
             end
-            
-            -- Auto Claim Hive Logic (nur einmalig pro Join)
-            if Settings.AutoClaimHive and not HiveClaimedInRBC and LocalPlayer.Character then
-                HiveClaimedInRBC = true -- Setzen, damit es nicht nochmal ausgeführt wird
-                print("Starte Auto Claim Hive...")
+        end
+        task.wait(1)
+    end
+end)
+
+-- Loop 5: AutoClaimHive (Separate Logik)
+task.spawn(function()
+    while ScriptRunning do
+        if game.PlaceId == 17579225831 then
+            if Settings.AutoClaimHive and not HiveClaimedInRBC then
+                HiveClaimedInRBC = true -- Verhindert mehrfaches Ausführen in der gleichen Session
                 
-                local claimValues = {10, 9, 8, 7}
+                print("AutoClaimHive: Warte 10 Sekunden vor dem Claimen...")
+                task.wait(10)
                 
-                for i, value in ipairs(claimValues) do
-                    local success, err = pcall(function()
-                        local args = {[1] = value}
-                        ReplicatedStorage.Events.ClaimHive:FireServer(unpack(args))
-                        print("ClaimHive mit Argument: " .. value .. " ausgeführt.")
-                    end)
-                    if not success then
-                        print("Fehler bei ClaimHive " .. value .. ": " .. tostring(err))
+                -- Nochmals prüfen, ob Toggle noch an ist und wir noch in RBC sind
+                if Settings.AutoClaimHive and game.PlaceId == 17579225831 then
+                    print("Starte Auto Claim Hive (10, 9, 8, 7)...")
+                    local claimValues = {10, 9, 8, 7}
+                    
+                    for _, value in ipairs(claimValues) do
+                        pcall(function()
+                            ReplicatedStorage.Events.ClaimHive:FireServer(value)
+                            print("ClaimHive " .. value .. " gesendet.")
+                        end)
+                        task.wait(1)
                     end
-                    task.wait(0.5)
+                    print("Auto Claim Hive Durchlauf beendet.")
+                else
+                    HiveClaimedInRBC = false -- Reset falls abgebrochen
                 end
-                print("Auto Claim Hive beendet.")
             end
-            
         else
-            -- Zurücksetzen, wenn nicht in der RBC PlaceId
+            -- Reset wenn man das Spiel verlässt
             if HiveClaimedInRBC then
-                print("Nicht mehr in RBC, setze HiveClaimedInRBC auf false")
                 HiveClaimedInRBC = false
             end
         end
-        
         task.wait(1)
     end
 end)
