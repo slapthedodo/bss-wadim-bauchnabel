@@ -363,6 +363,23 @@ RBCTab:CreateToggle({
     Flag = "AutoRBC",
     Callback = function(Value)
         Settings.AutoRBC = Value
+        if Value then
+            Settings.AutoRBCLobby = false
+            -- Hier könnte man das UI-Element für AutoRBCLobby updaten, falls Rayfield das unterstützt
+        end
+        SaveConfig()
+    end,
+})
+
+RBCTab:CreateToggle({
+    Name = "auto teleport rbc lobby",
+    CurrentValue = Settings.AutoRBCLobby,
+    Flag = "AutoRBCLobby",
+    Callback = function(Value)
+        Settings.AutoRBCLobby = Value
+        if Value then
+            Settings.AutoRBC = false
+        end
         SaveConfig()
     end,
 })
@@ -518,7 +535,11 @@ task.spawn(function()
 end)
 
 -- Loop 4: Walkspeed und AutoClaimHive (bei Join)
-game.Loaded:Wait() -- Warten, bis das Spiel geladen ist
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
+print("Spiel geladen, starte Loop 4")
+
 task.spawn(function()
     while ScriptRunning do
         if game.PlaceId == 17579225831 then
@@ -527,7 +548,7 @@ task.spawn(function()
                 SetWalkspeed(70)
             end
             
-            -- Auto Claim Hive Logic (nur einmalig)
+            -- Auto Claim Hive Logic (nur einmalig pro Join)
             if Settings.AutoClaimHive and not HiveClaimedInRBC and LocalPlayer.Character then
                 HiveClaimedInRBC = true -- Setzen, damit es nicht nochmal ausgeführt wird
                 print("Starte Auto Claim Hive...")
@@ -540,7 +561,10 @@ task.spawn(function()
                         ReplicatedStorage.Events.ClaimHive:FireServer(unpack(args))
                         print("ClaimHive mit Argument: " .. value .. " ausgeführt.")
                     end)
-                    task.wait(1)
+                    if not success then
+                        print("Fehler bei ClaimHive " .. value .. ": " .. tostring(err))
+                    end
+                    task.wait(0.5)
                 end
                 print("Auto Claim Hive beendet.")
             end
@@ -548,9 +572,9 @@ task.spawn(function()
         else
             -- Zurücksetzen, wenn nicht in der RBC PlaceId
             if HiveClaimedInRBC then
+                print("Nicht mehr in RBC, setze HiveClaimedInRBC auf false")
                 HiveClaimedInRBC = false
             end
-
         end
         
         task.wait(1)
