@@ -10,9 +10,6 @@ local LocalPlayer = Players.LocalPlayer
 -- Variable zum Steuern des Loops (für Unload wichtig)
 local ScriptRunning = true
 
--- Variable for AutoClaimHive state (Setzt sich bei Join auf false)
-local HiveClaimedInRBC = false
-
 -- Dateiname für Config
 local FileName = "BeeSwarmSchlipSchlop_" .. LocalPlayer.UserId .. ".json"
 
@@ -156,22 +153,6 @@ end
 
 -- Config laden
 LoadConfig()
-
--- Funktion zum Setzen des Walkspeeds
-local function SetWalkspeed(speed)
-    local Character = LocalPlayer.Character
-    if Character and Character:FindFirstChildOfClass("Humanoid") then
-        Character.Humanoid.WalkSpeed = speed
-    end
-end
-
--- Wenn der Spieler respawnt, muss der Walkspeed neu gesetzt werden, falls aktiv
-LocalPlayer.CharacterAdded:Connect(function(Character)
-    -- Wenn RBC Walkspeed aktiv ist, setze ihn nach dem Respawn
-    if Settings.RBCWalkspeed and game.PlaceId == 17579225831 then
-        Character:WaitForChild("Humanoid").WalkSpeed = 70
-    end
-end)
 
 -- Rayfield Library laden
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
@@ -355,7 +336,7 @@ RBCTab:CreateButton({
     end,
 })
 
-RBCTab:CreateSection("atuo tp")
+RBCTab:CreateSection("Auto tp (every 10s if in Main Game)")
 
 RBCTab:CreateToggle({
     Name = "auto teleport rbc",
@@ -368,27 +349,11 @@ RBCTab:CreateToggle({
 })
 
 RBCTab:CreateToggle({
-    Name = "RBC Walkspeed (70)",
-    CurrentValue = Settings.RBCWalkspeed,
-    Flag = "RBCWalkspeed",
+    Name = "auto teleport rbc Lobby",
+    CurrentValue = Settings.AutoRBCLobby,
+    Flag = "AutoRBCLobby",
     Callback = function(Value)
-        Settings.RBCWalkspeed = Value
-        SaveConfig()
-        
-        if game.PlaceId == 17579225831 then
-            if Value then
-                SetWalkspeed(70)
-            end
-        end
-    end,
-})
-
-RBCTab:CreateToggle({
-    Name = "Auto Claim Hive",
-    CurrentValue = Settings.AutoClaimHive,
-    Flag = "AutoClaimHive",
-    Callback = function(Value)
-        Settings.AutoClaimHive = Value
+        Settings.AutoRBCLobby = Value
         SaveConfig()
     end,
 })
@@ -514,45 +479,5 @@ task.spawn(function()
             end
         end
         task.wait(10)
-    end
-end)
-
--- Loop 4: Walkspeed und AutoClaimHive (bei Join)
-game.Loaded:Wait() -- Warten, bis das Spiel geladen ist
-task.spawn(function()
-    while ScriptRunning do
-        if game.PlaceId == 17579225831 then
-            -- Walkspeed setzen, falls aktiv
-            if Settings.RBCWalkspeed then
-                SetWalkspeed(70)
-            end
-            
-            -- Auto Claim Hive Logic (nur einmalig)
-            if Settings.AutoClaimHive and not HiveClaimedInRBC and LocalPlayer.Character then
-                HiveClaimedInRBC = true -- Setzen, damit es nicht nochmal ausgeführt wird
-                print("Starte Auto Claim Hive...")
-                
-                local claimValues = {10, 9, 8, 7}
-                
-                for i, value in ipairs(claimValues) do
-                    local success, err = pcall(function()
-                        local args = {[1] = value}
-                        ReplicatedStorage.Events.ClaimHive:FireServer(unpack(args))
-                        print("ClaimHive mit Argument: " .. value .. " ausgeführt.")
-                    end)
-                    task.wait(1)
-                end
-                print("Auto Claim Hive beendet.")
-            end
-            
-        else
-            -- Zurücksetzen, wenn nicht in der RBC PlaceId
-            if HiveClaimedInRBC then
-                HiveClaimedInRBC = false
-            end
-
-        end
-        
-        task.wait(1)
     end
 end)
