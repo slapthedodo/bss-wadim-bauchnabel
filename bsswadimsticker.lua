@@ -625,11 +625,13 @@ end)
 -- Loop 7: Auto Slime Kill
 task.spawn(function()
     local TweenService = game:GetService("TweenService")
-    local DebrisService = game:GetService("Debris")
+    local lastToggleState = false
 
     while ScriptRunning do
-        if Settings.AutoSlimeKill and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        if Settings.AutoSlimeKill and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            lastToggleState = true
             local HumanoidRootPart = LocalPlayer.Character.HumanoidRootPart
+            local Humanoid = LocalPlayer.Character.Humanoid
             local TargetSlimeBlob = nil
 
             -- Suche nach dem Slime Monster Blob1 von Level 1 bis 14
@@ -637,43 +639,57 @@ task.spawn(function()
                 local slimeMonsterName = "Slime (Lvl " .. i .. ")"
                 local slimeMonsterFolder = game.workspace.Monsters:FindFirstChild(slimeMonsterName)
                 if slimeMonsterFolder then
-                    local blob1 = slimeMonsterFolder.SlimeMonster:FindFirstChild("Blob1")
-                    if blob1 then
-                        TargetSlimeBlob = blob1
-                        break
+                    local slimeMonster = slimeMonsterFolder:FindFirstChild("SlimeMonster")
+                    if slimeMonster then
+                        local blob1 = slimeMonster:FindFirstChild("Blob1")
+                        if blob1 then
+                            TargetSlimeBlob = blob1
+                            break
+                        end
                     end
                 end
             end
 
             if TargetSlimeBlob then
+                -- Character "hinlegen" und Bewegung deaktivieren
+                Humanoid.PlatformStand = true
+                
                 local targetPosition = TargetSlimeBlob.Position
                 local currentPosition = HumanoidRootPart.Position
 
-                -- Optional: Etwas über dem Slime positionieren, um nicht im Boden festzustecken
-                local adjustedTargetPosition = Vector3.new(targetPosition.X, targetPosition.Y + 5, targetPosition.Z)
+                -- Position etwas über dem Slime
+                local adjustedTargetPosition = Vector3.new(targetPosition.X, targetPosition.Y + 3, targetPosition.Z)
 
-                -- Berechne die Distanz und Dauer für den Tween (langsamer)
+                -- Berechne die Distanz und Dauer für den Tween (langsam)
                 local distance = (adjustedTargetPosition - currentPosition).Magnitude
-                local duration = distance / 55 -- Passt die Geschwindigkeit an (hier: 5 Studs pro Sekunde)
+                local duration = distance / 8 -- Etwas schneller als 5, aber immer noch langsam
 
                 local tweenInfo = TweenInfo.new(
                     duration,
-                    Enum.EasingStyle.Linear, -- Lineare Bewegung für "Dungeon Quest" ähnlichen Stil
-                    Enum.EasingDirection.Out,
-                    0,
-                    false,
-                    0
+                    Enum.EasingStyle.Linear,
+                    Enum.EasingDirection.Out
                 )
 
-                -- Stelle sicher, dass der Charakter aufrecht bleibt
-                -- Setze die CFrame mit der Zielposition und der aktuellen Ausrichtung
-                local targetCFrame = CFrame.new(adjustedTargetPosition) * CFrame.Angles(0, HumanoidRootPart.Orientation.Y, 0)
+                -- Rotation: Bauch zum Slime (Charakter liegt flach)
+                -- Wir nehmen die aktuelle Position und schauen zum Slime, dann rotieren wir um 90 Grad auf der X-Achse
+                local targetCFrame = CFrame.new(adjustedTargetPosition, targetPosition) * CFrame.Angles(math.rad(-90), 0, 0)
                 
                 local tween = TweenService:Create(HumanoidRootPart, tweenInfo, {CFrame = targetCFrame})
                 tween:Play()
-                tween.Completed:Wait() -- Warte, bis der Tween abgeschlossen ist
+                
+                tween.Completed:Wait()
+            end
+        else
+            -- Reset wenn Toggle aus
+            if lastToggleState then
+                lastToggleState = false
+                pcall(function()
+                    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+                        LocalPlayer.Character.Humanoid.PlatformStand = false
+                    end
+                end)
             end
         end
-        task.wait(1) -- Wartezeit, bevor der nächste Slime gesucht wird
+        task.wait(0.5)
     end
 end)
