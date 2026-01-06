@@ -657,7 +657,7 @@ task.spawn(function()
                 local upRotation = CFrame.Angles(math.rad(90), 0, 0)
                 
                 -- Ziel-Y ist fest auf -5
-                local targetY = 105
+                local targetY = 205
                 
                 local TargetSlimeBlob = nil
                 for i = 1, 14 do
