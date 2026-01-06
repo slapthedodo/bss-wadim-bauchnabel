@@ -629,77 +629,81 @@ task.spawn(function()
     local platform = nil
 
     while ScriptRunning do
-        if Settings.AutoSlimeKill and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character:FindFirstChild("Humanoid") then
-            lastToggleState = true
-            local HumanoidRootPart = LocalPlayer.Character.HumanoidRootPart
-            local Humanoid = LocalPlayer.Character.Humanoid
-
-            if not platform or not platform.Parent then
-                platform = Instance.new("Part")
-                platform.Size = Vector3.new(10, 1, 10)
-                platform.Anchored = true
-                platform.Transparency = 1
-                platform.CanCollide = true
-                platform.Name = "SlimeKillPlatform"
-                platform.Parent = workspace
+        if Settings.AutoSlimeKill then
+            if not lastToggleState then
+                lastToggleState = true
+                -- 10 Sekunden warten beim ersten Einschalten
+                task.wait(10)
             end
 
-            Humanoid.PlatformStand = true
-            
-            local TargetSlimeBlob = nil
-            for i = 1, 14 do
-                local slimeMonsterName = "Slime (Lvl " .. i .. ")"
-                local slimeMonsterFolder = game.workspace.Monsters:FindFirstChild(slimeMonsterName)
-                if slimeMonsterFolder then
-                    local slimeMonster = slimeMonsterFolder:FindFirstChild("SlimeMonster")
-                    if slimeMonster then
-                        local blob1 = slimeMonster:FindFirstChild("Blob1")
-                        if blob1 then
-                            TargetSlimeBlob = blob1
-                            break
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character:FindFirstChild("Humanoid") then
+                local HumanoidRootPart = LocalPlayer.Character.HumanoidRootPart
+                local Humanoid = LocalPlayer.Character.Humanoid
+
+                -- Platform erstellen
+                if not platform or not platform.Parent then
+                    platform = Instance.new("Part")
+                    platform.Size = Vector3.new(10, 1, 10)
+                    platform.Anchored = true
+                    platform.Transparency = 1
+                    platform.CanCollide = true
+                    platform.Name = "SlimeKillPlatform"
+                    platform.Parent = workspace
+                end
+
+                -- Character hinlegen und nach oben schauen lassen
+                Humanoid.PlatformStand = true
+                -- Rotation fixieren: Schaut nach oben (Bauch nach unten, Gesicht zum Himmel)
+                local upRotation = CFrame.Angles(math.rad(-90), 0, 0)
+                
+                -- Ziel-Y ist fest auf -5
+                local targetY = -5
+                
+                local TargetSlimeBlob = nil
+                for i = 1, 14 do
+                    local slimeMonsterName = "Slime (Lvl " .. i .. ")"
+                    local slimeMonsterFolder = game.workspace.Monsters:FindFirstChild(slimeMonsterName)
+                    if slimeMonsterFolder then
+                        local slimeMonster = slimeMonsterFolder:FindFirstChild("SlimeMonster")
+                        if slimeMonster then
+                            local blob1 = slimeMonster:FindFirstChild("Blob1")
+                            if blob1 then
+                                TargetSlimeBlob = blob1
+                                break
+                            end
                         end
                     end
                 end
-            end
 
-            if TargetSlimeBlob then
-                local targetPosition = TargetSlimeBlob.Position
-                -- Etwas tiefer über dem Slime bleiben
-                local adjustedTargetPosition = Vector3.new(targetPosition.X, targetPosition.Y + 2.5, targetPosition.Z)
-                
-                local distance = (adjustedTargetPosition - HumanoidRootPart.Position).Magnitude
-                
-                -- Geschwindigkeit stark drosseln (Dungeon Quest style)
-                -- Wenn Distanz groß, längere Dauer erzwingen
-                local speed = 55 -- Studs pro Sekunde
-                local duration = math.max(distance / speed, 0.5)
-                
-                local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
-                
-                -- CFrame: Bauch nach unten, Blick zum Slime
-                local targetCFrame = CFrame.new(adjustedTargetPosition, targetPosition) * CFrame.Angles(math.rad(-90), 0, 0)
-                
-                local tween = TweenService:Create(HumanoidRootPart, tweenInfo, {CFrame = targetCFrame})
-                local platTween = TweenService:Create(platform, tweenInfo, {CFrame = CFrame.new(adjustedTargetPosition - Vector3.new(0, 2.5, 0))})
-                
-                tween:Play()
-                platTween:Play()
-                
-                -- Warten bis Ziel erreicht, währenddessen Position halten
-                local startTime = tick()
-                while tick() - startTime < duration and Settings.AutoSlimeKill do
-                    task.wait()
+                if TargetSlimeBlob then
+                    local targetPos = TargetSlimeBlob.Position
+                    local adjustedTarget = Vector3.new(targetPos.X, targetY, targetPos.Z)
+                    local distance = (adjustedTarget - HumanoidRootPart.Position).Magnitude
+                    
+                    if distance > 1 then
+                        local speed = 60
+                        local duration = distance / speed
+                        local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
+                        
+                        -- CFrame mit fester Rotation nach oben
+                        local targetCFrame = CFrame.new(adjustedTarget) * upRotation
+                        
+                        local tween = TweenService:Create(HumanoidRootPart, tweenInfo, {CFrame = targetCFrame})
+                        local platTween = TweenService:Create(platform, tweenInfo, {CFrame = CFrame.new(adjustedTarget - Vector3.new(0, 3, 0))})
+                        
+                        tween:Play()
+                        platTween:Play()
+                        tween.Completed:Wait()
+                    else
+                        -- Position halten
+                        HumanoidRootPart.CFrame = CFrame.new(HumanoidRootPart.Position.X, targetY, HumanoidRootPart.Position.Z) * upRotation
+                        platform.CFrame = CFrame.new(HumanoidRootPart.Position - Vector3.new(0, 3, 0))
+                    end
+                else
+                    -- Auch ohne Ziel auf Y -5 und Rotation nach oben bleiben
+                    HumanoidRootPart.CFrame = CFrame.new(HumanoidRootPart.Position.X, targetY, HumanoidRootPart.Position.Z) * upRotation
+                    platform.CFrame = CFrame.new(HumanoidRootPart.Position - Vector3.new(0, 3, 0))
                 end
-                
-                -- Nach dem Tween Position fixieren
-                if Settings.AutoSlimeKill then
-                    HumanoidRootPart.CFrame = targetCFrame
-                    platform.CFrame = CFrame.new(adjustedTargetPosition - Vector3.new(0, 5, 0))
-                end
-            else
-                -- Bauchlage halten wenn kein Ziel da ist
-                HumanoidRootPart.CFrame = CFrame.new(HumanoidRootPart.Position, HumanoidRootPart.Position + HumanoidRootPart.CFrame.LookVector) * CFrame.Angles(math.rad(-90), 0, 0)
-                platform.CFrame = CFrame.new(HumanoidRootPart.Position - Vector3.new(0, 5, 0))
             end
         else
             if lastToggleState then
