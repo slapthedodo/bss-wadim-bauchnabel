@@ -581,19 +581,16 @@ task.spawn(function()
             if Settings.AutoClaimHive and not HiveClaimedInretro then
                 HiveClaimedInretro = true -- Verhindert mehrfaches Ausführen in der gleichen Session
 
-                task.wait(1.5)
-                
                 -- Nochmals prüfen, ob Toggle noch an ist und wir noch in retro sind
                 if Settings.AutoClaimHive and game.PlaceId == 17579225831 then
                     print("Starte Auto Claim Hive (10, 9, 8, 7)...")
-                    local claimValues = {10, 9, 8, 7}
+                    local claimValues = {9}
                     
                     for _, value in ipairs(claimValues) do
                         pcall(function()
                             ReplicatedStorage.Events.ClaimHive:FireServer(value)
                             print("ClaimHive " .. value .. " gesendet.")
                         end)
-                        task.wait(1)
                     end
                     print("Auto Claim Hive Durchlauf beendet.")
                 else
