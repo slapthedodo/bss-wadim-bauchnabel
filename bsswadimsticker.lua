@@ -632,17 +632,16 @@ task.spawn(function()
     end
 end)
 
+-- Loop 7: Auto Slime Kill
 task.spawn(function()
     local TweenService = game:GetService("TweenService")
     local lastToggleState = false
     local platform = nil
-    local collectingTokensNow = false
 
     while ScriptRunning do
         if Settings.AutoSlimeKill and game.PlaceId == 17579225831 then
             if not lastToggleState then
                 lastToggleState = true
-                collectingTokensNow = false
                 -- ClassicBaseplate Collision ausschalten
                 pcall(function()
                     local classicBaseplate = workspace.ClassicMinigame.ClassicBaseplate
@@ -721,9 +720,9 @@ task.spawn(function()
                 end
 
                 -- Wenn kein Slime gefunden: Sammle Collectibles 'C' ohne zurückzufliegen
-                if not TargetSlimeBlob and not collectingTokensNow then
-                    collectingTokensNow = true
+                if not TargetSlimeBlob then
                     local collectingTokens = true
+                    local visitedCollects = {}
                     while collectingTokens and Settings.AutoSlimeKill and game.PlaceId == 17579225831 do
                         -- Prüfe nochmal auf neue Slimes (Priorität)
                         local CheckSlimeBlob = nil
@@ -752,17 +751,23 @@ task.spawn(function()
                             -- Slime gefunden, raus aus Token-Loop
                             TargetSlimeBlob = CheckSlimeBlob
                             collectingTokens = false
-                            collectingTokensNow = false
                             break
                         end
 
-                        -- Suche nächsten 'C'-Token innerhalb 400 Radius
+                        -- Entferne aus visitedCollects, falls Token weg oder zu alt
+                        for k, v in pairs(visitedCollects) do
+                            if not k.Parent or (tick() - v) > 10 then
+                                visitedCollects[k] = nil
+                            end
+                        end
+
+                        -- Suche nächsten 'C'-Token innerhalb 400 Radius (ignoriert bereits besuchte)
                         local nextCollect = nil
                         local nextCollectDist = math.huge
                         pcall(function()
                             if workspace:FindFirstChild("Collectibles") then
                                 for _, c in pairs(workspace.Collectibles:GetChildren()) do
-                                    if c and c:IsA("BasePart") and c.Name == "C" and c.Parent then
+                                    if c and c:IsA("BasePart") and c.Name == "C" and c.Parent and not visitedCollects[c] then
                                         local d = (c.Position - HumanoidRootPart.Position).Magnitude
                                         if d <= 400 and d < nextCollectDist then
                                             nextCollectDist = d
@@ -774,6 +779,8 @@ task.spawn(function()
                         end)
 
                         if nextCollect then
+                            -- Markiere als besucht, damit wir nicht erneut targetten
+                            visitedCollects[nextCollect] = tick()
                             -- Tween direkt zur Token-Position
                             local collectPos = nextCollect.Position
                             local collectTarget = Vector3.new(collectPos.X, collectPos.Y, collectPos.Z)
@@ -796,11 +803,11 @@ task.spawn(function()
                                     firetouchinterest(nextCollect, hrp, 1)
                                 end
                             end)
-                            task.wait(0.03)
+                            task.wait(0.15)
+                            -- Direkt zur nächsten Iteration (kein Zurückfliegen zum Prev)
                         else
                             -- Keine Token mehr gefunden, beende Loop
                             collectingTokens = false
-                            collectingTokensNow = false
                         end
                     end
 
@@ -875,7 +882,6 @@ task.spawn(function()
         else
             if lastToggleState then
                 lastToggleState = false
-                collectingTokensNow = false
                 if platform then platform:Destroy() platform = nil end
                 -- ClassicBaseplate Collision wieder anschalten
                 pcall(function()
