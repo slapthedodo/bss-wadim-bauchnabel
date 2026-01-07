@@ -632,16 +632,17 @@ task.spawn(function()
     end
 end)
 
--- Loop 7: Auto Slime Kill
 task.spawn(function()
     local TweenService = game:GetService("TweenService")
     local lastToggleState = false
     local platform = nil
+    local collectingTokensNow = false
 
     while ScriptRunning do
         if Settings.AutoSlimeKill and game.PlaceId == 17579225831 then
             if not lastToggleState then
                 lastToggleState = true
+                collectingTokensNow = false
                 -- ClassicBaseplate Collision ausschalten
                 pcall(function()
                     local classicBaseplate = workspace.ClassicMinigame.ClassicBaseplate
@@ -720,7 +721,8 @@ task.spawn(function()
                 end
 
                 -- Wenn kein Slime gefunden: Sammle Collectibles 'C' ohne zurückzufliegen
-                if not TargetSlimeBlob then
+                if not TargetSlimeBlob and not collectingTokensNow then
+                    collectingTokensNow = true
                     local collectingTokens = true
                     while collectingTokens and Settings.AutoSlimeKill and game.PlaceId == 17579225831 do
                         -- Prüfe nochmal auf neue Slimes (Priorität)
@@ -750,6 +752,7 @@ task.spawn(function()
                             -- Slime gefunden, raus aus Token-Loop
                             TargetSlimeBlob = CheckSlimeBlob
                             collectingTokens = false
+                            collectingTokensNow = false
                             break
                         end
 
@@ -793,10 +796,11 @@ task.spawn(function()
                                     firetouchinterest(nextCollect, hrp, 1)
                                 end
                             end)
-                            task.wait(0.15)
+                            task.wait(0.03)
                         else
                             -- Keine Token mehr gefunden, beende Loop
                             collectingTokens = false
+                            collectingTokensNow = false
                         end
                     end
 
@@ -871,6 +875,7 @@ task.spawn(function()
         else
             if lastToggleState then
                 lastToggleState = false
+                collectingTokensNow = false
                 if platform then platform:Destroy() platform = nil end
                 -- ClassicBaseplate Collision wieder anschalten
                 pcall(function()
