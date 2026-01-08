@@ -662,28 +662,6 @@ task.spawn(function()
                     end
                 end)
                 
-                -- Zu Startposition gehen
-                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                    local HumanoidRootPart = LocalPlayer.Character.HumanoidRootPart
-                    local startPos = Vector3.new(-47190.1133, 290.470581, 186.999374)
-                    local distance = (startPos - HumanoidRootPart.Position).Magnitude
-                    local speed = 69
-                    local duration = distance / speed
-                    local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
-                    
-                    if tick() < AutoSlime_blockUntil then
-                        task.wait(0.2)
-                    else
-                        -- cancel any previously exported tweens
-                        cancelActiveAutoSlime()
-                        local tween = TweenService:Create(HumanoidRootPart, tweenInfo, {CFrame = CFrame.new(startPos)})
-                        tween:Play()
-                        AutoSlime_activeTween = tween
-                        tween.Completed:Wait()
-                        AutoSlime_activeTween = nil
-                    end
-                end
-                
                 -- 10 Sekunden warten beim ersten Einschalten
                 task.wait(10)
             end
