@@ -32,7 +32,8 @@ local Settings = {
     retroWalkspeed = false,
     AutoClaimHive = false,
     AutoHit = false,
-    AutoSlimeKill = false
+    AutoSlimeKill = false,
+    AutoUpgrade = false
 }
 
 -- UI für Cooldowns
@@ -154,6 +155,7 @@ local function LoadConfig()
             if result.AutoClaimHive ~= nil then Settings.AutoClaimHive = result.AutoClaimHive end
             if result.AutoHit ~= nil then Settings.AutoHit = result.AutoHit end
             if result.AutoSlimeKill ~= nil then Settings.AutoSlimeKill = result.AutoSlimeKill end
+            if result.AutoUpgrade ~= nil then Settings.AutoUpgrade = result.AutoUpgrade end
         end
     end
 end
@@ -430,6 +432,16 @@ retroTab:CreateToggle({
     Flag = "AutoSlimeKill",
     Callback = function(Value)
         Settings.AutoSlimeKill = Value
+        SaveConfig()
+    end,
+})
+
+retroTab:CreateToggle({
+    Name = "autoupgrade (bee upgrades)",
+    CurrentValue = Settings.AutoUpgrade,
+    Flag = "AutoUpgrade",
+    Callback = function(Value)
+        Settings.AutoUpgrade = Value
         SaveConfig()
     end,
 })
@@ -915,6 +927,93 @@ task.spawn(function()
                         LocalPlayer.Character.HumanoidRootPart.AssemblyAngularVelocity = Vector3.zero
                     end
                 end)
+            end
+        end
+        task.wait(0.1)
+    end
+end)
+
+-- Loop 8: AutoUpgrade (Bee Upgrades)
+task.spawn(function()
+    local TweenService = game:GetService("TweenService")
+    local lastUpgradeToggleState = false
+    local upgradePrices = {5, 15, 30}
+    local currentUpgradeIndex = 1
+    local lastUpgradeTime = 0
+
+    while ScriptRunning do
+        if Settings.AutoUpgrade and game.PlaceId == 17579225831 then
+            if not lastUpgradeToggleState then
+                lastUpgradeToggleState = true
+                currentUpgradeIndex = 1
+                lastUpgradeTime = tick()
+                task.wait(13)  -- Warte 13 Sekunden beim ersten Einschalten
+            end
+
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                local HumanoidRootPart = LocalPlayer.Character.HumanoidRootPart
+
+                -- Lese Brick-Anzahl aus dem Label
+                local bricksText = ""
+                pcall(function()
+                    bricksText = game:GetService("Players").LocalPlayer.PlayerGui.ScreenGui.UnderPopUpFrame.RetroGuiTopMenu.TopMenuFrame2.BrickLabel.Text
+                end)
+
+                -- Extrahiere Zahl aus Text (z.B. "100" aus "100 Bricks")
+                local bricks = tonumber(bricksText:match("^%d+"))
+                bricks = bricks or 0
+
+                -- Wenn alle 3 Upgrades gekauft, stoppe
+                if currentUpgradeIndex > 3 then
+                    lastUpgradeToggleState = false
+                else
+                    local requiredBricks = upgradePrices[currentUpgradeIndex]
+
+                    -- Warte 3 Sekunden nach dem letzten Upgrade
+                    if (tick() - lastUpgradeTime) < 3 then
+                        task.wait(0.1)
+                    else
+                        -- Wenn genug Bricks, kaufe das Upgrade
+                        if bricks >= requiredBricks then
+                            -- Tween zur Position kurz vor dem Button (-47180, 290, 222)
+                            local preBtnPos = Vector3.new(-47180, 290, 222)
+                            local distance1 = (preBtnPos - HumanoidRootPart.Position).Magnitude
+                            local speed = 69
+                            local duration1 = math.max(0.1, distance1 / speed)
+                            local tween1 = TweenService:Create(HumanoidRootPart, TweenInfo.new(duration1, Enum.EasingStyle.Linear), {CFrame = CFrame.new(preBtnPos)})
+                            tween1:Play()
+                            tween1.Completed:Wait()
+
+                            -- Warte kurz, dann tween zum Button (-47190, 290, 222)
+                            task.wait(0.1)
+                            local btnPos = Vector3.new(-47190, 290, 222)
+                            local distance2 = (btnPos - HumanoidRootPart.Position).Magnitude
+                            local duration2 = math.max(0.1, distance2 / speed)
+                            local tween2 = TweenService:Create(HumanoidRootPart, TweenInfo.new(duration2, Enum.EasingStyle.Linear), {CFrame = CFrame.new(btnPos)})
+                            tween2:Play()
+                            tween2.Completed:Wait()
+
+                            -- Warte 1 Sekunde, dann FireServer für Bienen-Auswahl (Biene 2)
+                            task.wait(1)
+                            pcall(function()
+                                local args = {[1] = 2}
+                                ReplicatedStorage.Events.RetroChallengeBeeSelect:FireServer(unpack(args))
+                            end)
+
+                            -- Update für nächstes Upgrade
+                            lastUpgradeTime = tick()
+                            currentUpgradeIndex = currentUpgradeIndex + 1
+                            task.wait(0.1)
+                        else
+                            task.wait(0.5)  -- Warte kurz, bevor wieder Bricks gecheckt werden
+                        end
+                    end
+                end
+            end
+        else
+            if lastUpgradeToggleState then
+                lastUpgradeToggleState = false
+                currentUpgradeIndex = 1
             end
         end
         task.wait(0.1)
