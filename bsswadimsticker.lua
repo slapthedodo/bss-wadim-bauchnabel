@@ -42,6 +42,31 @@ local AutoSlime_activeTween = nil
 local AutoSlime_activePlatTween = nil
 local AutoSlime_activeConn = nil
 
+-- Helper to cancel any active AutoSlime tweens/connections
+local function cancelActiveAutoSlime()
+    pcall(function()
+        if activeConn then activeConn:Disconnect() activeConn = nil end
+        if activeTween then pcall(function() activeTween:Cancel() end) activeTween = nil end
+        if activePlatTween then pcall(function() activePlatTween:Cancel() end) activePlatTween = nil end
+        -- clear exported handles as well
+        AutoSlime_activeTween = nil
+        AutoSlime_activePlatTween = nil
+        AutoSlime_activeConn = nil
+    end)
+end
+
+-- Watcher: if Settings.InterruptAutoSlime is set, cancel active tweens and clear the flag
+task.spawn(function()
+    while ScriptRunning do
+        if Settings.InterruptAutoSlime then
+            cancelActiveAutoSlime()
+            Settings.InterruptAutoSlime = false
+            SaveConfig()
+        end
+        task.wait(0.5)
+    end
+end)
+
 -- UI für Cooldowns
 local CooldownGui = Instance.new("ScreenGui")
 CooldownGui.Name = "BSSCooldowns"
@@ -1004,6 +1029,14 @@ task.spawn(function()
             if not isAutoUpgradeRunning then
                 isAutoUpgradeRunning = true
 
+                -- Pause AutoSlimeKill while upgrading (save previous state)
+                local prevAutoSlime = Settings.AutoSlimeKill
+                if prevAutoSlime then
+                    Settings.AutoSlimeKill = false
+                    SaveConfig()
+                    cancelActiveAutoSlime()
+                end
+
                 -- Warte 15 Sekunden am Anfang
                 task.wait(15)
                 
@@ -1075,6 +1108,12 @@ task.spawn(function()
                     end)
                 end
                 
+                -- Restore AutoSlimeKill to previous value
+                if prevAutoSlime ~= nil then
+                    Settings.AutoSlimeKill = prevAutoSlime
+                    SaveConfig()
+                end
+
                 isAutoUpgradeRunning = false
             end
         else
