@@ -1066,34 +1066,10 @@ task.spawn(function()
                     local approachPos = Vector3.new(-47180, 290, 222)
                     local dist1 = (approachPos - hrp.Position).Magnitude
                     if dist1 > 1 then
-                        -- Re-check bricks immediately before tweening; wait a short time if needed
-                        if not hasEnoughBricks then
-                            local shortWait = 0
-                            local shortMax = 120
-                            while shortWait < shortMax and not hasEnoughBricks and Settings.AutoUpgrade and game.PlaceId == 17579225831 do
-                                pcall(function()
-                                    local brickLabel = game:GetService("Players").LocalPlayer.PlayerGui.ScreenGui.UnderPopUpFrame.RetroGuiTopMenu.TopMenuFrame2.BrickLabel
-                                    if brickLabel then
-                                        local brickText = tonumber(brickLabel.Text) or 0
-                                        if brickText >= upgrade.cost then
-                                            hasEnoughBricks = true
-                                        end
-                                    end
-                                end)
-                                if not hasEnoughBricks then
-                                    task.wait(0.5)
-                                    shortWait = shortWait + 0.5
-                                end
-                            end
-                        end
-                        if hasEnoughBricks then
-                            local duration1 = dist1 / 69
-                            local tween1 = TweenService:Create(hrp, TweenInfo.new(duration1, Enum.EasingStyle.Linear), {CFrame = CFrame.new(approachPos)})
-                            tween1:Play()
-                            tween1.Completed:Wait()
-                        else
-                            break
-                        end
+                        local duration1 = dist1 / 69
+                        local tween1 = TweenService:Create(hrp, TweenInfo.new(duration1, Enum.EasingStyle.Linear), {CFrame = CFrame.new(approachPos)})
+                        tween1:Play()
+                        tween1.Completed:Wait()
                     end
                     
                     -- Warte vor dem Button, falls nötig (Cooldown von vorherigem Upgrade)
@@ -1105,53 +1081,17 @@ task.spawn(function()
                     local buttonPos = upgrade.position
                     local dist2 = (buttonPos - hrp.Position).Magnitude
                     if dist2 > 1 then
-                        -- Re-check bricks right before moving onto the button
-                        pcall(function()
-                            local brickLabel = game:GetService("Players").LocalPlayer.PlayerGui.ScreenGui.UnderPopUpFrame.RetroGuiTopMenu.TopMenuFrame2.BrickLabel
-                            if brickLabel then
-                                local brickText = tonumber(brickLabel.Text) or 0
-                                if brickText < upgrade.cost then
-                                    hasEnoughBricks = false
-                                else
-                                    hasEnoughBricks = true
-                                end
-                            end
-                        end)
-                        if not hasEnoughBricks then break end
                         local duration2 = dist2 / 69
                         local tween2 = TweenService:Create(hrp, TweenInfo.new(duration2, Enum.EasingStyle.Linear), {CFrame = CFrame.new(buttonPos)})
                         tween2:Play()
                         tween2.Completed:Wait()
                     end
                     
-                    -- 1 Sekunde nach Ankunft: mehrfach versuchen, die Biene auszuwählen
+                    -- 1 Sekunde nach Ankunft: FireServer RetroChallengeBeeSelect mit arg 2
                     task.wait(1)
                     pcall(function()
-                        local attempts = 3
-                        for i = 1, attempts do
-                            if not Settings.AutoUpgrade or game.PlaceId ~= 17579225831 then break end
-                            -- re-check bricks and position before firing
-                            local brickLabel = pcall(function()
-                                return game:GetService("Players").LocalPlayer.PlayerGui.ScreenGui.UnderPopUpFrame.RetroGuiTopMenu.TopMenuFrame2.BrickLabel
-                            end)
-                            local brickCount = 0
-                            pcall(function()
-                                local bl = game:GetService("Players").LocalPlayer.PlayerGui.ScreenGui.UnderPopUpFrame.RetroGuiTopMenu.TopMenuFrame2.BrickLabel
-                                brickCount = tonumber(bl and bl.Text) or 0
-                            end)
-                            if brickCount < upgrade.cost then break end
-                            -- ensure we're close enough to the button
-                            local hrpPos = hrp and hrp.Position
-                            if hrpPos then
-                                local distToButton = (hrpPos - buttonPos).Magnitude
-                                if distToButton > 6 then break end
-                            end
-                            pcall(function()
-                                local args = {[1] = 2}
-                                game:GetService("ReplicatedStorage").Events.RetroChallengeBeeSelect:FireServer(unpack(args))
-                            end)
-                            task.wait(0.5)
-                        end
+                        local args = {[1] = 2}
+                        game:GetService("ReplicatedStorage").Events.RetroChallengeBeeSelect:FireServer(unpack(args))
                     end)
                 end
                 
