@@ -41,17 +41,17 @@ local Settings = {
 local AutoSlime_activeTween = nil
 local AutoSlime_activePlatTween = nil
 local AutoSlime_activeConn = nil
+local AutoSlime_blockUntil = 0
 
 -- Helper to cancel any active AutoSlime tweens/connections
 local function cancelActiveAutoSlime()
     pcall(function()
-        if activeConn then activeConn:Disconnect() activeConn = nil end
-        if activeTween then pcall(function() activeTween:Cancel() end) activeTween = nil end
-        if activePlatTween then pcall(function() activePlatTween:Cancel() end) activePlatTween = nil end
-        -- clear exported handles as well
-        AutoSlime_activeTween = nil
-        AutoSlime_activePlatTween = nil
-        AutoSlime_activeConn = nil
+        -- cancel inner-loop handles if present
+        if AutoSlime_activeConn then AutoSlime_activeConn:Disconnect() AutoSlime_activeConn = nil end
+        if AutoSlime_activeTween then pcall(function() AutoSlime_activeTween:Cancel() end) AutoSlime_activeTween = nil end
+        if AutoSlime_activePlatTween then pcall(function() AutoSlime_activePlatTween:Cancel() end) AutoSlime_activePlatTween = nil end
+        -- set a short block to prevent immediate restart
+        AutoSlime_blockUntil = tick() + 0.8
     end)
 end
 
@@ -678,9 +678,6 @@ task.spawn(function()
     local lastToggleState = false
     local platform = nil
     local collectingTokensNow = false
-    local activeTween = nil
-    local activePlatTween = nil
-    local activeConn = nil
 
     while ScriptRunning do
         if Settings.AutoSlimeKill and game.PlaceId == 17579225831 then
@@ -704,18 +701,17 @@ task.spawn(function()
                     local duration = distance / speed
                     local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
                     
-                    -- Cancel any active tweens before starting a new one
-                    pcall(function()
-                        if activeConn then activeConn:Disconnect() activeConn = nil end
-                        if activeTween then pcall(function() activeTween:Cancel() end) activeTween = nil end
-                        if activePlatTween then pcall(function() activePlatTween:Cancel() end) activePlatTween = nil end
-                    end)
-
-                    local tween = TweenService:Create(HumanoidRootPart, tweenInfo, {CFrame = CFrame.new(startPos)})
-                    tween:Play()
-                    activeTween = tween
-                    tween.Completed:Wait()
-                    activeTween = nil
+                    if tick() < AutoSlime_blockUntil then
+                        task.wait(0.2)
+                    else
+                        -- cancel any previously exported tweens
+                        cancelActiveAutoSlime()
+                        local tween = TweenService:Create(HumanoidRootPart, tweenInfo, {CFrame = CFrame.new(startPos)})
+                        tween:Play()
+                        AutoSlime_activeTween = tween
+                        tween.Completed:Wait()
+                        AutoSlime_activeTween = nil
+                    end
                 end
                 
                 -- 10 Sekunden warten beim ersten Einschalten
@@ -846,35 +842,33 @@ task.spawn(function()
                             local duration = math.max(0.05, dist / speed)
 
                             local targetCFrame = CFrame.new(collectTarget) * upRotation
-                            -- Prepare and cancel any existing active tweens
-                            pcall(function()
-                                if activeConn then activeConn:Disconnect() activeConn = nil end
-                                if activeTween then pcall(function() activeTween:Cancel() end) activeTween = nil end
-                                if activePlatTween then pcall(function() activePlatTween:Cancel() end) activePlatTween = nil end
-                            end)
-
-                            local tween = TweenService:Create(HumanoidRootPart, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
-                            local platTween = TweenService:Create(platform, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = CFrame.new(collectTarget - Vector3.new(0, 3, 0))})
-                            tween:Play()
-                            platTween:Play()
-                            activeTween = tween
-                            activePlatTween = platTween
-                            activeConn = game:GetService("RunService").Heartbeat:Connect(function()
-                                if not Settings.AutoSlimeKill or not activeTween or game.PlaceId ~= 17579225831 then 
-                                    if activeConn then activeConn:Disconnect() activeConn = nil end
-                                    return 
-                                end
-                                HumanoidRootPart.AssemblyLinearVelocity = Vector3.zero
-                                HumanoidRootPart.AssemblyAngularVelocity = Vector3.zero
-                                if platform and platform:IsA("BasePart") then
-                                    platform.AssemblyLinearVelocity = Vector3.zero
-                                    platform.AssemblyAngularVelocity = Vector3.zero
-                                end
-                            end)
-                            activeTween.Completed:Wait()
-                            if activeConn then activeConn:Disconnect() activeConn = nil end
-                            activeTween = nil
-                            activePlatTween = nil
+                            if tick() < AutoSlime_blockUntil then
+                                task.wait(0.15)
+                            else
+                                cancelActiveAutoSlime()
+                                local tween = TweenService:Create(HumanoidRootPart, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
+                                local platTween = TweenService:Create(platform, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = CFrame.new(collectTarget - Vector3.new(0, 3, 0))})
+                                tween:Play()
+                                platTween:Play()
+                                AutoSlime_activeTween = tween
+                                AutoSlime_activePlatTween = platTween
+                                AutoSlime_activeConn = game:GetService("RunService").Heartbeat:Connect(function()
+                                    if not Settings.AutoSlimeKill or not AutoSlime_activeTween or game.PlaceId ~= 17579225831 then 
+                                        if AutoSlime_activeConn then AutoSlime_activeConn:Disconnect() AutoSlime_activeConn = nil end
+                                        return 
+                                    end
+                                    HumanoidRootPart.AssemblyLinearVelocity = Vector3.zero
+                                    HumanoidRootPart.AssemblyAngularVelocity = Vector3.zero
+                                    if platform and platform:IsA("BasePart") then
+                                        platform.AssemblyLinearVelocity = Vector3.zero
+                                        platform.AssemblyAngularVelocity = Vector3.zero
+                                    end
+                                end)
+                                tween.Completed:Wait()
+                                if AutoSlime_activeConn then AutoSlime_activeConn:Disconnect() AutoSlime_activeConn = nil end
+                                AutoSlime_activeTween = nil
+                                AutoSlime_activePlatTween = nil
+                            end
 
                             -- Berühre Token mit firetouchinterest für ~150ms
                             pcall(function()
@@ -902,37 +896,35 @@ task.spawn(function()
                             local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
                             local targetCFrame = CFrame.new(fallbackPos) * upRotation
 
-                            -- cancel any existing active tweens
-                            pcall(function()
-                                if activeConn then activeConn:Disconnect() activeConn = nil end
-                                if activeTween then pcall(function() activeTween:Cancel() end) activeTween = nil end
-                                if activePlatTween then pcall(function() activePlatTween:Cancel() end) activePlatTween = nil end
-                            end)
+                            if tick() < AutoSlime_blockUntil then
+                                task.wait(0.2)
+                            else
+                                cancelActiveAutoSlime()
+                                local tween = TweenService:Create(HumanoidRootPart, tweenInfo, {CFrame = targetCFrame})
+                                local platTween = TweenService:Create(platform, tweenInfo, {CFrame = CFrame.new(fallbackPos - Vector3.new(0, 3, 0))})
 
-                            local tween = TweenService:Create(HumanoidRootPart, tweenInfo, {CFrame = targetCFrame})
-                            local platTween = TweenService:Create(platform, tweenInfo, {CFrame = CFrame.new(fallbackPos - Vector3.new(0, 3, 0))})
+                                tween:Play()
+                                platTween:Play()
+                                AutoSlime_activeTween = tween
+                                AutoSlime_activePlatTween = platTween
+                                AutoSlime_activeConn = game:GetService("RunService").Heartbeat:Connect(function()
+                                    if not Settings.AutoSlimeKill or not AutoSlime_activeTween or game.PlaceId ~= 17579225831 then 
+                                        if AutoSlime_activeConn then AutoSlime_activeConn:Disconnect() AutoSlime_activeConn = nil end
+                                        return 
+                                    end
+                                    HumanoidRootPart.AssemblyLinearVelocity = Vector3.zero
+                                    HumanoidRootPart.AssemblyAngularVelocity = Vector3.zero
+                                    if platform and platform:IsA("BasePart") then
+                                        platform.AssemblyLinearVelocity = Vector3.zero
+                                        platform.AssemblyAngularVelocity = Vector3.zero
+                                    end
+                                end)
 
-                            tween:Play()
-                            platTween:Play()
-                            activeTween = tween
-                            activePlatTween = platTween
-                            activeConn = game:GetService("RunService").Heartbeat:Connect(function()
-                                if not Settings.AutoSlimeKill or not activeTween or game.PlaceId ~= 17579225831 then 
-                                    if activeConn then activeConn:Disconnect() activeConn = nil end
-                                    return 
-                                end
-                                HumanoidRootPart.AssemblyLinearVelocity = Vector3.zero
-                                HumanoidRootPart.AssemblyAngularVelocity = Vector3.zero
-                                if platform and platform:IsA("BasePart") then
-                                    platform.AssemblyLinearVelocity = Vector3.zero
-                                    platform.AssemblyAngularVelocity = Vector3.zero
-                                end
-                            end)
-
-                            activeTween.Completed:Wait()
-                            if activeConn then activeConn:Disconnect() activeConn = nil end
-                            activeTween = nil
-                            activePlatTween = nil
+                                tween.Completed:Wait()
+                                if AutoSlime_activeConn then AutoSlime_activeConn:Disconnect() AutoSlime_activeConn = nil end
+                                AutoSlime_activeTween = nil
+                                AutoSlime_activePlatTween = nil
+                            end
                         else
                             HumanoidRootPart.CFrame = CFrame.new(fallbackPos) * upRotation
                             platform.CFrame = CFrame.new(fallbackPos - Vector3.new(0, 3, 0))
@@ -943,44 +935,42 @@ task.spawn(function()
                     local targetPos = TargetSlimeBlob.Position
                     local adjustedTarget = Vector3.new(targetPos.X, targetY, targetPos.Z)
                     local distance = (adjustedTarget - HumanoidRootPart.Position).Magnitude
-                    if distance > 1 then
+                        if distance > 1 then
                         local speed = 69
                         local duration = distance / speed
                         local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
 
                         local targetCFrame = CFrame.new(adjustedTarget) * upRotation
-                        -- cancel any existing active tweens
-                        pcall(function()
-                            if activeConn then activeConn:Disconnect() activeConn = nil end
-                            if activeTween then pcall(function() activeTween:Cancel() end) activeTween = nil end
-                            if activePlatTween then pcall(function() activePlatTween:Cancel() end) activePlatTween = nil end
-                        end)
+                        if tick() < AutoSlime_blockUntil then
+                            task.wait(0.2)
+                        else
+                            cancelActiveAutoSlime()
+                            local tween = TweenService:Create(HumanoidRootPart, tweenInfo, {CFrame = targetCFrame})
+                            local platTween = TweenService:Create(platform, tweenInfo, {CFrame = CFrame.new(adjustedTarget - Vector3.new(0, 3, 0))})
 
-                        local tween = TweenService:Create(HumanoidRootPart, tweenInfo, {CFrame = targetCFrame})
-                        local platTween = TweenService:Create(platform, tweenInfo, {CFrame = CFrame.new(adjustedTarget - Vector3.new(0, 3, 0))})
+                            tween:Play()
+                            platTween:Play()
+                            AutoSlime_activeTween = tween
+                            AutoSlime_activePlatTween = platTween
 
-                        tween:Play()
-                        platTween:Play()
-                        activeTween = tween
-                        activePlatTween = platTween
+                            AutoSlime_activeConn = game:GetService("RunService").Heartbeat:Connect(function()
+                                if not Settings.AutoSlimeKill or not AutoSlime_activeTween or game.PlaceId ~= 17579225831 then 
+                                    if AutoSlime_activeConn then AutoSlime_activeConn:Disconnect() AutoSlime_activeConn = nil end
+                                    return 
+                                end
+                                HumanoidRootPart.AssemblyLinearVelocity = Vector3.zero
+                                HumanoidRootPart.AssemblyAngularVelocity = Vector3.zero
+                                if platform and platform:IsA("BasePart") then
+                                    platform.AssemblyLinearVelocity = Vector3.zero
+                                    platform.AssemblyAngularVelocity = Vector3.zero
+                                end
+                            end)
 
-                        activeConn = game:GetService("RunService").Heartbeat:Connect(function()
-                            if not Settings.AutoSlimeKill or not activeTween or game.PlaceId ~= 17579225831 then 
-                                if activeConn then activeConn:Disconnect() activeConn = nil end
-                                return 
-                            end
-                            HumanoidRootPart.AssemblyLinearVelocity = Vector3.zero
-                            HumanoidRootPart.AssemblyAngularVelocity = Vector3.zero
-                            if platform and platform:IsA("BasePart") then
-                                platform.AssemblyLinearVelocity = Vector3.zero
-                                platform.AssemblyAngularVelocity = Vector3.zero
-                            end
-                        end)
-
-                        activeTween.Completed:Wait()
-                        if activeConn then activeConn:Disconnect() activeConn = nil end
-                        activeTween = nil
-                        activePlatTween = nil
+                            tween.Completed:Wait()
+                            if AutoSlime_activeConn then AutoSlime_activeConn:Disconnect() AutoSlime_activeConn = nil end
+                            AutoSlime_activeTween = nil
+                            AutoSlime_activePlatTween = nil
+                        end
                     else
                         HumanoidRootPart.CFrame = CFrame.new(HumanoidRootPart.Position.X, targetY, HumanoidRootPart.Position.Z) * upRotation
                         platform.CFrame = CFrame.new(HumanoidRootPart.Position - Vector3.new(0, 3, 0))
@@ -992,11 +982,7 @@ task.spawn(function()
                 lastToggleState = false
                 collectingTokensNow = false
                 -- Cancel any active tweens/handlers
-                pcall(function()
-                    if activeConn then activeConn:Disconnect() activeConn = nil end
-                    if activeTween then pcall(function() activeTween:Cancel() end) activeTween = nil end
-                    if activePlatTween then pcall(function() activePlatTween:Cancel() end) activePlatTween = nil end
-                end)
+                cancelActiveAutoSlime()
                 if platform then platform:Destroy() platform = nil end
                 -- ClassicBaseplate Collision wieder anschalten
                 pcall(function()
