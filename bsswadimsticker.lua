@@ -1015,6 +1015,8 @@ task.spawn(function()
             if not isAutoUpgradeRunning then
                 isAutoUpgradeRunning = true
 
+                -- Warte 15 Sekunden am Anfang
+                task.wait(15)
                 -- Pause AutoSlimeKill while upgrading (save previous state)
                 local prevAutoSlime = Settings.AutoSlimeKill
                 if prevAutoSlime then
@@ -1023,8 +1025,7 @@ task.spawn(function()
                     cancelActiveAutoSlime()
                 end
 
-                -- Warte 15 Sekunden am Anfang
-                task.wait(15)
+
                 
                 local upgrades = {
                     {name = "Bee Upgrade 1", cost = 5, position = Vector3.new(-47190, 290, 222), waitBefore = 0},
