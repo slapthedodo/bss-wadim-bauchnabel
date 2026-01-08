@@ -33,8 +33,14 @@ local Settings = {
     AutoClaimHive = false,
     AutoHit = false,
     AutoSlimeKill = false,
-    AutoUpgrade = false
+    AutoUpgrade = false,
+    InterruptAutoSlime = false
 }
+
+-- Active tween handles for AutoSlimeKill (accessible globally so UI can interrupt)
+local AutoSlime_activeTween = nil
+local AutoSlime_activePlatTween = nil
+local AutoSlime_activeConn = nil
 
 -- UI für Cooldowns
 local CooldownGui = Instance.new("ScreenGui")
@@ -437,7 +443,7 @@ retroTab:CreateToggle({
 })
 
 retroTab:CreateToggle({
-    Name = "autoupgrade (bee upgrades)",
+    Name = "Auto Upgrade",
     CurrentValue = Settings.AutoUpgrade,
     Flag = "AutoUpgrade",
     Callback = function(Value)
@@ -647,6 +653,9 @@ task.spawn(function()
     local lastToggleState = false
     local platform = nil
     local collectingTokensNow = false
+    local activeTween = nil
+    local activePlatTween = nil
+    local activeConn = nil
 
     while ScriptRunning do
         if Settings.AutoSlimeKill and game.PlaceId == 17579225831 then
@@ -670,9 +679,18 @@ task.spawn(function()
                     local duration = distance / speed
                     local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
                     
+                    -- Cancel any active tweens before starting a new one
+                    pcall(function()
+                        if activeConn then activeConn:Disconnect() activeConn = nil end
+                        if activeTween then pcall(function() activeTween:Cancel() end) activeTween = nil end
+                        if activePlatTween then pcall(function() activePlatTween:Cancel() end) activePlatTween = nil end
+                    end)
+
                     local tween = TweenService:Create(HumanoidRootPart, tweenInfo, {CFrame = CFrame.new(startPos)})
                     tween:Play()
+                    activeTween = tween
                     tween.Completed:Wait()
+                    activeTween = nil
                 end
                 
                 -- 10 Sekunden warten beim ersten Einschalten
@@ -803,14 +821,22 @@ task.spawn(function()
                             local duration = math.max(0.05, dist / speed)
 
                             local targetCFrame = CFrame.new(collectTarget) * upRotation
+                            -- Prepare and cancel any existing active tweens
+                            pcall(function()
+                                if activeConn then activeConn:Disconnect() activeConn = nil end
+                                if activeTween then pcall(function() activeTween:Cancel() end) activeTween = nil end
+                                if activePlatTween then pcall(function() activePlatTween:Cancel() end) activePlatTween = nil end
+                            end)
+
                             local tween = TweenService:Create(HumanoidRootPart, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
                             local platTween = TweenService:Create(platform, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = CFrame.new(collectTarget - Vector3.new(0, 3, 0))})
                             tween:Play()
                             platTween:Play()
-                            local conn
-                            conn = game:GetService("RunService").Heartbeat:Connect(function()
-                                if not Settings.AutoSlimeKill or not tween or game.PlaceId ~= 17579225831 then 
-                                    if conn then conn:Disconnect() end
+                            activeTween = tween
+                            activePlatTween = platTween
+                            activeConn = game:GetService("RunService").Heartbeat:Connect(function()
+                                if not Settings.AutoSlimeKill or not activeTween or game.PlaceId ~= 17579225831 then 
+                                    if activeConn then activeConn:Disconnect() activeConn = nil end
                                     return 
                                 end
                                 HumanoidRootPart.AssemblyLinearVelocity = Vector3.zero
@@ -820,8 +846,10 @@ task.spawn(function()
                                     platform.AssemblyAngularVelocity = Vector3.zero
                                 end
                             end)
-                            tween.Completed:Wait()
-                            if conn then conn:Disconnect() end
+                            activeTween.Completed:Wait()
+                            if activeConn then activeConn:Disconnect() activeConn = nil end
+                            activeTween = nil
+                            activePlatTween = nil
 
                             -- Berühre Token mit firetouchinterest für ~150ms
                             pcall(function()
@@ -849,24 +877,37 @@ task.spawn(function()
                             local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
                             local targetCFrame = CFrame.new(fallbackPos) * upRotation
 
+                            -- cancel any existing active tweens
+                            pcall(function()
+                                if activeConn then activeConn:Disconnect() activeConn = nil end
+                                if activeTween then pcall(function() activeTween:Cancel() end) activeTween = nil end
+                                if activePlatTween then pcall(function() activePlatTween:Cancel() end) activePlatTween = nil end
+                            end)
+
                             local tween = TweenService:Create(HumanoidRootPart, tweenInfo, {CFrame = targetCFrame})
                             local platTween = TweenService:Create(platform, tweenInfo, {CFrame = CFrame.new(fallbackPos - Vector3.new(0, 3, 0))})
 
                             tween:Play()
                             platTween:Play()
-
-                            local conn
-                            conn = game:GetService("RunService").Heartbeat:Connect(function()
-                                if not Settings.AutoSlimeKill or not tween or game.PlaceId ~= 17579225831 then 
-                                    if conn then conn:Disconnect() end
+                            activeTween = tween
+                            activePlatTween = platTween
+                            activeConn = game:GetService("RunService").Heartbeat:Connect(function()
+                                if not Settings.AutoSlimeKill or not activeTween or game.PlaceId ~= 17579225831 then 
+                                    if activeConn then activeConn:Disconnect() activeConn = nil end
                                     return 
                                 end
                                 HumanoidRootPart.AssemblyLinearVelocity = Vector3.zero
                                 HumanoidRootPart.AssemblyAngularVelocity = Vector3.zero
+                                if platform and platform:IsA("BasePart") then
+                                    platform.AssemblyLinearVelocity = Vector3.zero
+                                    platform.AssemblyAngularVelocity = Vector3.zero
+                                end
                             end)
 
-                            tween.Completed:Wait()
-                            if conn then conn:Disconnect() end
+                            activeTween.Completed:Wait()
+                            if activeConn then activeConn:Disconnect() activeConn = nil end
+                            activeTween = nil
+                            activePlatTween = nil
                         else
                             HumanoidRootPart.CFrame = CFrame.new(fallbackPos) * upRotation
                             platform.CFrame = CFrame.new(fallbackPos - Vector3.new(0, 3, 0))
@@ -883,24 +924,38 @@ task.spawn(function()
                         local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
 
                         local targetCFrame = CFrame.new(adjustedTarget) * upRotation
+                        -- cancel any existing active tweens
+                        pcall(function()
+                            if activeConn then activeConn:Disconnect() activeConn = nil end
+                            if activeTween then pcall(function() activeTween:Cancel() end) activeTween = nil end
+                            if activePlatTween then pcall(function() activePlatTween:Cancel() end) activePlatTween = nil end
+                        end)
+
                         local tween = TweenService:Create(HumanoidRootPart, tweenInfo, {CFrame = targetCFrame})
                         local platTween = TweenService:Create(platform, tweenInfo, {CFrame = CFrame.new(adjustedTarget - Vector3.new(0, 3, 0))})
 
                         tween:Play()
                         platTween:Play()
+                        activeTween = tween
+                        activePlatTween = platTween
 
-                        local conn
-                        conn = game:GetService("RunService").Heartbeat:Connect(function()
-                            if not Settings.AutoSlimeKill or not tween or game.PlaceId ~= 17579225831 then 
-                                if conn then conn:Disconnect() end
+                        activeConn = game:GetService("RunService").Heartbeat:Connect(function()
+                            if not Settings.AutoSlimeKill or not activeTween or game.PlaceId ~= 17579225831 then 
+                                if activeConn then activeConn:Disconnect() activeConn = nil end
                                 return 
                             end
                             HumanoidRootPart.AssemblyLinearVelocity = Vector3.zero
                             HumanoidRootPart.AssemblyAngularVelocity = Vector3.zero
+                            if platform and platform:IsA("BasePart") then
+                                platform.AssemblyLinearVelocity = Vector3.zero
+                                platform.AssemblyAngularVelocity = Vector3.zero
+                            end
                         end)
 
-                        tween.Completed:Wait()
-                        if conn then conn:Disconnect() end
+                        activeTween.Completed:Wait()
+                        if activeConn then activeConn:Disconnect() activeConn = nil end
+                        activeTween = nil
+                        activePlatTween = nil
                     else
                         HumanoidRootPart.CFrame = CFrame.new(HumanoidRootPart.Position.X, targetY, HumanoidRootPart.Position.Z) * upRotation
                         platform.CFrame = CFrame.new(HumanoidRootPart.Position - Vector3.new(0, 3, 0))
@@ -911,6 +966,12 @@ task.spawn(function()
             if lastToggleState then
                 lastToggleState = false
                 collectingTokensNow = false
+                -- Cancel any active tweens/handlers
+                pcall(function()
+                    if activeConn then activeConn:Disconnect() activeConn = nil end
+                    if activeTween then pcall(function() activeTween:Cancel() end) activeTween = nil end
+                    if activePlatTween then pcall(function() activePlatTween:Cancel() end) activePlatTween = nil end
+                end)
                 if platform then platform:Destroy() platform = nil end
                 -- ClassicBaseplate Collision wieder anschalten
                 pcall(function()
@@ -933,89 +994,92 @@ task.spawn(function()
     end
 end)
 
--- Loop 8: AutoUpgrade (Bee Upgrades)
+-- Loop 7: AutoUpgrade
 task.spawn(function()
     local TweenService = game:GetService("TweenService")
-    local lastUpgradeToggleState = false
-    local upgradePrices = {5, 15, 30}
-    local currentUpgradeIndex = 1
-    local lastUpgradeTime = 0
+    local isAutoUpgradeRunning = false
 
     while ScriptRunning do
         if Settings.AutoUpgrade and game.PlaceId == 17579225831 then
-            if not lastUpgradeToggleState then
-                lastUpgradeToggleState = true
-                currentUpgradeIndex = 1
-                lastUpgradeTime = tick()
-                task.wait(13)  -- Warte 13 Sekunden beim ersten Einschalten
-            end
+            if not isAutoUpgradeRunning then
+                isAutoUpgradeRunning = true
 
-            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                local HumanoidRootPart = LocalPlayer.Character.HumanoidRootPart
-
-                -- Lese Brick-Anzahl aus dem Label
-                local bricksText = ""
-                pcall(function()
-                    bricksText = game:GetService("Players").LocalPlayer.PlayerGui.ScreenGui.UnderPopUpFrame.RetroGuiTopMenu.TopMenuFrame2.BrickLabel.Text
-                end)
-
-                -- Extrahiere Zahl aus Text (z.B. "100" aus "100 Bricks")
-                local bricks = tonumber(bricksText:match("^%d+"))
-                bricks = bricks or 0
-
-                -- Wenn alle 3 Upgrades gekauft, stoppe
-                if currentUpgradeIndex > 3 then
-                    lastUpgradeToggleState = false
-                else
-                    local requiredBricks = upgradePrices[currentUpgradeIndex]
-
-                    -- Warte 3 Sekunden nach dem letzten Upgrade
-                    if (tick() - lastUpgradeTime) < 3 then
-                        task.wait(0.1)
-                    else
-                        -- Wenn genug Bricks, kaufe das Upgrade
-                        if bricks >= requiredBricks then
-                            -- Tween zur Position kurz vor dem Button (-47180, 290, 222)
-                            local preBtnPos = Vector3.new(-47180, 290, 222)
-                            local distance1 = (preBtnPos - HumanoidRootPart.Position).Magnitude
-                            local speed = 69
-                            local duration1 = math.max(0.1, distance1 / speed)
-                            local tween1 = TweenService:Create(HumanoidRootPart, TweenInfo.new(duration1, Enum.EasingStyle.Linear), {CFrame = CFrame.new(preBtnPos)})
-                            tween1:Play()
-                            tween1.Completed:Wait()
-
-                            -- Warte kurz, dann tween zum Button (-47190, 290, 222)
-                            task.wait(0.1)
-                            local btnPos = Vector3.new(-47190, 290, 222)
-                            local distance2 = (btnPos - HumanoidRootPart.Position).Magnitude
-                            local duration2 = math.max(0.1, distance2 / speed)
-                            local tween2 = TweenService:Create(HumanoidRootPart, TweenInfo.new(duration2, Enum.EasingStyle.Linear), {CFrame = CFrame.new(btnPos)})
-                            tween2:Play()
-                            tween2.Completed:Wait()
-
-                            -- Warte 1 Sekunde, dann FireServer für Bienen-Auswahl (Biene 2)
-                            task.wait(1)
-                            pcall(function()
-                                local args = {[1] = 2}
-                                ReplicatedStorage.Events.RetroChallengeBeeSelect:FireServer(unpack(args))
-                            end)
-
-                            -- Update für nächstes Upgrade
-                            lastUpgradeTime = tick()
-                            currentUpgradeIndex = currentUpgradeIndex + 1
-                            task.wait(0.1)
-                        else
-                            task.wait(0.5)  -- Warte kurz, bevor wieder Bricks gecheckt werden
+                -- Warte 15 Sekunden am Anfang
+                task.wait(15)
+                
+                local upgrades = {
+                    {name = "Bee Upgrade 1", cost = 5, position = Vector3.new(-47190, 290, 222), waitBefore = 0},
+                    {name = "Bee Upgrade 2", cost = 15, position = Vector3.new(-47190, 290, 222), waitBefore = 3},
+                    {name = "Bee Upgrade 3", cost = 30, position = Vector3.new(-47190, 290, 222), waitBefore = 3}
+                }
+                
+                for upgradeIdx, upgrade in ipairs(upgrades) do
+                    if not Settings.AutoUpgrade or game.PlaceId ~= 17579225831 then break end
+                    
+                    local character = LocalPlayer.Character
+                    if not character or not character:FindFirstChild("HumanoidRootPart") then break end
+                    local hrp = character.HumanoidRootPart
+                    
+                    -- Warte auf genug Bricks (check BrickLabel)
+                    local hasEnoughBricks = false
+                    local maxWait = 300
+                    local waitedTime = 0
+                    while not hasEnoughBricks and Settings.AutoUpgrade and game.PlaceId == 17579225831 and waitedTime < maxWait do
+                        pcall(function()
+                            local brickLabel = game:GetService("Players").LocalPlayer.PlayerGui.ScreenGui.UnderPopUpFrame.RetroGuiTopMenu.TopMenuFrame2.BrickLabel
+                            if brickLabel then
+                                local brickText = tonumber(brickLabel.Text) or 0
+                                if brickText >= upgrade.cost then
+                                    hasEnoughBricks = true
+                                end
+                            end
+                        end)
+                        if not hasEnoughBricks then
+                            task.wait(0.5)
+                            waitedTime = waitedTime + 0.5
                         end
                     end
+                    
+                    if not hasEnoughBricks then break end
+                    
+                    -- Tween zu Position kurz vor Upgrade Button ("-47180, 290, 222")
+                    local approachPos = Vector3.new(-47180, 290, 222)
+                    local dist1 = (approachPos - hrp.Position).Magnitude
+                    if dist1 > 1 then
+                        local duration1 = dist1 / 69
+                        local tween1 = TweenService:Create(hrp, TweenInfo.new(duration1, Enum.EasingStyle.Linear), {CFrame = CFrame.new(approachPos)})
+                        tween1:Play()
+                        tween1.Completed:Wait()
+                    end
+                    
+                    -- Warte vor dem Button, falls nötig (Cooldown von vorherigem Upgrade)
+                    if upgrade.waitBefore > 0 then
+                        task.wait(upgrade.waitBefore)
+                    end
+                    
+                    -- Tween zum Upgrade Button ("-47190, 290, 222")
+                    local buttonPos = upgrade.position
+                    local dist2 = (buttonPos - hrp.Position).Magnitude
+                    if dist2 > 1 then
+                        local duration2 = dist2 / 69
+                        local tween2 = TweenService:Create(hrp, TweenInfo.new(duration2, Enum.EasingStyle.Linear), {CFrame = CFrame.new(buttonPos)})
+                        tween2:Play()
+                        tween2.Completed:Wait()
+                    end
+                    
+                    -- 1 Sekunde nach Ankunft: FireServer RetroChallengeBeeSelect mit arg 2
+                    task.wait(1)
+                    pcall(function()
+                        local args = {[1] = 2}
+                        game:GetService("ReplicatedStorage").Events.RetroChallengeBeeSelect:FireServer(unpack(args))
+                    end)
                 end
+                
+                isAutoUpgradeRunning = false
             end
         else
-            if lastUpgradeToggleState then
-                lastUpgradeToggleState = false
-                currentUpgradeIndex = 1
-            end
+            isAutoUpgradeRunning = false
         end
-        task.wait(0.1)
+        task.wait(1)
     end
 end)
