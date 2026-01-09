@@ -44,6 +44,9 @@ local AutoSlime_activeTween = nil
 local AutoSlime_activePlatTween = nil
 local AutoSlime_activeConn = nil
 local AutoSlime_blockUntil = 0
+local HasFirebrand = false
+local HasSword = false
+local CurrentWeapon = "Sword" -- Default to Sword since it's the first purchase
 
 -- Ensure AutoUpgrade runs only once per user activation while leaving the UI toggle on
 local AutoUpgrade_hasRun = false
@@ -720,12 +723,23 @@ task.spawn(function()
     local lastToggleState = false
     local platform = nil
     local collectingTokensNow = false
+    local isSquareFarming = false
+
+    local function equipWeapon()
+        if HasSword or HasFirebrand then
+            pcall(function()
+                local args = {[1] = {["Name"] = CurrentWeapon}}
+                game:GetService("ReplicatedStorage").Events.PlayerActivesCommand:FireServer(unpack(args))
+            end)
+        end
+    end
 
     while ScriptRunning do
         if Settings.AutoSlimeKill and game.PlaceId == 17579225831 then
             if not lastToggleState then
                 lastToggleState = true
                 collectingTokensNow = false
+                isSquareFarming = false
                 -- ClassicBaseplate Collision ausschalten
                 pcall(function()
                     local classicBaseplate = workspace.ClassicMinigame.ClassicBaseplate
@@ -806,6 +820,10 @@ task.spawn(function()
 
                 -- Wenn kein Slime gefunden: Sammle Collectibles 'C' ohne zurückzufliegen
                 if not TargetSlimeBlob and not collectingTokensNow then
+                    if isSquareFarming then
+                        isSquareFarming = false
+                        equipWeapon() -- Switch back to weapon if we were farming
+                    end
                     collectingTokensNow = true
                     local collectingTokens = true
                     local visitedCollects = {}
@@ -937,6 +955,11 @@ task.spawn(function()
                     -- Nach Token-Sammeln: Falls keine Slimes gefunden, gehe zur Fallback Position
                     if not TargetSlimeBlob then
                         if Settings.FarmPollen and CurrentRound >= 0 and CurrentRound <= 6 then
+                            if not isSquareFarming then
+                                isSquareFarming = true
+                                -- Equip farm tool (toggle current weapon)
+                                equipWeapon()
+                            end
                             -- Farm Pollen Logic for Rounds 0-6
                             local farmCoords = {
                                 Vector3.new(-47014, 292, 64),
@@ -1049,6 +1072,11 @@ task.spawn(function()
                         end
                     end
                 else
+                    -- Equip weapon before targeting slime
+                    if not isSquareFarming then
+                        equipWeapon()
+                    end
+                    isSquareFarming = false
                     -- Ziel-Slime gefunden: tween zum Slime (Y fixed to targetY)
                     local targetPos = TargetSlimeBlob.Position
                     local adjustedTarget = Vector3.new(targetPos.X, targetY, targetPos.Z)
@@ -1139,6 +1167,9 @@ task.spawn(function()
         local hrp = character.HumanoidRootPart
         local bricks = getBricks()
 
+        -- If square farming is active, don't buy weapons or upgrades that might interfere
+        if isSquareFarming then return false end
+
         -- Wenn maxWait == nil: warte unbegrenzt bis genug Bricks vorhanden sind (solange AutoUpgrade und ScriptRunning true)
         if maxWait == nil then
             while bricks < cost and Settings.AutoUpgrade and ScriptRunning do
@@ -1209,6 +1240,8 @@ task.spawn(function()
                                 isAutoUpgradeRunning = false
                                 return 
                             end
+                            HasSword = true
+                            CurrentWeapon = "Sword"
                         else
                             print("[DEBUG] Sword button not found!")
                         end
@@ -1247,6 +1280,8 @@ task.spawn(function()
                                 isAutoUpgradeRunning = false
                                 return
                             end
+                            HasFirebrand = true
+                            CurrentWeapon = "Firebrand"
                         else
                             print("[DEBUG] Buy Firebrand button not found!")
                         end
