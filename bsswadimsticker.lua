@@ -706,9 +706,8 @@ task.spawn(function()
 
                 if workspace:FindFirstChild("Monsters") then
                     for _, monsterFolder in pairs(workspace.Monsters:GetChildren()) do
-                        local slimeMonster = monsterFolder:FindFirstChild("SlimeMonster")
-                        if slimeMonster then
-                            for _, desc in pairs(slimeMonster:GetDescendants()) do
+                        for _, monster in pairs(monsterFolder:GetChildren()) do
+                            for _, desc in pairs(monster:GetDescendants()) do
                                 if desc:IsA("BasePart") and tostring(desc.Name):match("^Blob") then
                                     local zDiff = math.abs(desc.Position.Z - 230)
                                     local horizDist = (Vector2.new(desc.Position.X - HumanoidRootPart.Position.X, desc.Position.Z - 230)).Magnitude
@@ -735,9 +734,8 @@ task.spawn(function()
                         local checkTie = math.huge
                         if workspace:FindFirstChild("Monsters") then
                             for _, monsterFolder in pairs(workspace.Monsters:GetChildren()) do
-                                local slimeMonster = monsterFolder:FindFirstChild("SlimeMonster")
-                                if slimeMonster then
-                                    for _, desc in pairs(slimeMonster:GetDescendants()) do
+                                for _, monster in pairs(monsterFolder:GetChildren()) do
+                                    for _, desc in pairs(monster:GetDescendants()) do
                                         if desc:IsA("BasePart") and tostring(desc.Name):match("^Blob") then
                                             local zDiff = math.abs(desc.Position.Z - 230)
                                             local horizDist = (Vector2.new(desc.Position.X - HumanoidRootPart.Position.X, desc.Position.Z - 230)).Magnitude
@@ -971,7 +969,7 @@ task.spawn(function()
             and LocalPlayer.PlayerGui.ScreenGui.UnderPopUpFrame.RetroGuiTopMenu.TopMenuFrame2:FindFirstChild("BrickLabel")
         if brickLabel then
             local val = tonumber(brickLabel.Text) or 0
-            print("[DEBUG] Current bricks:", val)
+            print("bricks:", val)
             return val
         end
         print("[DEBUG] BrickLabel not found!")
@@ -981,14 +979,12 @@ task.spawn(function()
     local function handleButton(button, cost, name, isBee)
         local character = LocalPlayer.Character
         if not character or not character:FindFirstChild("HumanoidRootPart") then 
-            print("[DEBUG] Character or HRP missing for", name)
             return false 
         end
         local hrp = character.HumanoidRootPart
         local bricks = getBricks()
 
         if bricks >= cost then
-            print("[DEBUG] Buying", name, "for", cost)
             local oldCFrame = button.CFrame
             button.CanCollide = false
             button.CFrame = hrp.CFrame
@@ -996,18 +992,22 @@ task.spawn(function()
             button.CFrame = oldCFrame * CFrame.new(0, 50, 0)
             
             if isBee then
-                print("[DEBUG] Firing BeeSelect UI signal for", name)
-                pcall(function()
-                    firesignal(game:GetService("Players").LocalPlayer.PlayerGui.ScreenGui.MiscPopUpFrame.BeeSelectScreen.Frame.Choice2.Button.MouseButton1Click)
-                end)
+                for i = 1, 3 do -- Try up to 3 times
+                    local success, err = pcall(function()
+                        firesignal(game:GetService("Players").LocalPlayer.PlayerGui.ScreenGui.MiscPopUpFrame.BeeSelectScreen.Frame.Choice2.Button.MouseButton1Click)
+                    end)
+                    if success then
+                        break -- Signal fired successfully, exit loop
+                    else
+                        task.wait(0.2) -- Wait a bit before retrying
+                    end
+                end
             end
             
             task.wait(5)
             return true
         else
             print("[DEBUG] Cannot afford", name, "| Cost:", cost, "| Have:", bricks)
-            button.CanCollide = false
-            button.CFrame = hrp.CFrame * CFrame.new(0, 20, 0)
             return false
         end
     end
@@ -1018,8 +1018,6 @@ task.spawn(function()
                 isAutoUpgradeRunning = true
 
                 task.wait(15)
-                
-                print("[DEBUG] Starting AutoUpgrade cycle")
 
                 pcall(function()
                     local tycoonButtons = workspace:FindFirstChild("ClassicMinigame") and workspace.ClassicMinigame:FindFirstChild("TycoonButtons")
@@ -1028,7 +1026,11 @@ task.spawn(function()
                         local swordBtnFolder = tycoonButtons:FindFirstChild("Buy Classic Sword")
                         local swordBtn = swordBtnFolder and swordBtnFolder:FindFirstChild("Button")
                         if swordBtn then
-                            handleButton(swordBtn, 10, "Classic Sword", false)
+                            local bought = handleButton(swordBtn, 10, "Classic Sword", false)
+                            if not bought then 
+                                isAutoUpgradeRunning = false
+                                return 
+                            end
                         else
                             print("[DEBUG] Sword button not found!")
                         end
@@ -1046,7 +1048,11 @@ task.spawn(function()
                             local beeBtn = beeBtnFolder and beeBtnFolder:FindFirstChild("Button")
                             
                             if beeBtn then
-                                handleButton(beeBtn, upgrade.cost, upgrade.name, true)
+                                local bought = handleButton(beeBtn, upgrade.cost, upgrade.name, true)
+                                if not bought then 
+                                    isAutoUpgradeRunning = false
+                                    return 
+                                end
                             else
                                 print("[DEBUG] Unlock Bees Button not found!")
                             end
@@ -1056,7 +1062,9 @@ task.spawn(function()
                     end
                 end)
 
-                print("[DEBUG] AutoUpgrade cycle finished")
+                -- After completing the cycle, we set Settings.AutoUpgrade to false to prevent restart
+                Settings.AutoUpgrade = false
+                SaveConfig()
                 isAutoUpgradeRunning = false
             end
         else
