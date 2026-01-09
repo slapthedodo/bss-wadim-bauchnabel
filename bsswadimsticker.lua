@@ -419,7 +419,7 @@ retroTab:CreateToggle({
 })
 
 retroTab:CreateToggle({
-    Name = "Auto Claim Hive",
+    Name = "auto claim hive",
     CurrentValue = Settings.AutoClaimHive,
     Flag = "AutoClaimHive",
     Callback = function(Value)
@@ -439,7 +439,7 @@ retroTab:CreateToggle({
 })
 
 retroTab:CreateToggle({
-    Name = "Auto Slime Kill",
+    Name = "auto slime kill",
     CurrentValue = Settings.AutoSlimeKill,
     Flag = "AutoSlimeKill",
     Callback = function(Value)
@@ -449,7 +449,7 @@ retroTab:CreateToggle({
 })
 
 retroTab:CreateToggle({
-    Name = "Auto Upgrade",
+    Name = "auto buy",
     CurrentValue = Settings.AutoUpgrade,
     Flag = "AutoUpgrade",
     Callback = function(Value)
