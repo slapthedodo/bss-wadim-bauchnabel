@@ -1159,6 +1159,103 @@ task.spawn(function()
                         else
                             print("[DEBUG] 4th Bee button not found!")
                         end
+
+                        -- 5. Bee (55 bricks)
+                        local beeBtnFolder = tycoonButtons:FindFirstChild("Unlock Bees Button")
+                        local beeBtn = beeBtnFolder and beeBtnFolder:FindFirstChild("Button")
+                        if beeBtn then
+                            local bought = handleButton(beeBtn, 55, "Bee", true)
+                            if not bought then
+                                isAutoUpgradeRunning = false
+                                return
+                            end
+                        end
+
+                        -- 6. Bloxiade (100 bricks)
+                        local bloxiadeBtnFolder = tycoonButtons:FindFirstChild("Buy Bloxiade")
+                        local bloxiadeBtn = bloxiadeBtnFolder and bloxiadeBtnFolder:FindFirstChild("Button")
+                        if bloxiadeBtn then
+                            local bought = handleButton(bloxiadeBtn, 100, "Bloxiade", false)
+                            if not bought then
+                                isAutoUpgradeRunning = false
+                                return
+                            end
+                        end
+
+                        -- 7. Illumina (1500 bricks)
+                        local illuminaBtnFolder = tycoonButtons:FindFirstChild("Buy Illumina")
+                        local illuminaBtn = illuminaBtnFolder and illuminaBtn:FindFirstChild("Button")
+                        if illuminaBtn then
+                            local bought = handleButton(illuminaBtn, 1500, "Illumina", false)
+                            if not bought then
+                                isAutoUpgradeRunning = false
+                                return
+                            end
+                        end
+
+                        -- 8. Bloxy Cola (200 bricks)
+                        local colaBtnFolder = tycoonButtons:FindFirstChild("Buy Bloxy Cola")
+                        local colaBtn = colaBtnFolder and colaBtnFolder:FindFirstChild("Button")
+                        if colaBtn then
+                            local bought = handleButton(colaBtn, 200, "Bloxy Cola", false)
+                            if not bought then
+                                isAutoUpgradeRunning = false
+                                return
+                            end
+                        end
+
+                        -- 9. Chez Burger (300 bricks)
+                        local burgerBtnFolder = tycoonButtons:FindFirstChild("Buy Chez Burger")
+                        local burgerBtn = burgerBtnFolder and burgerBtnFolder:FindFirstChild("Button")
+                        if burgerBtn then
+                            local bought = handleButton(burgerBtn, 300, "Chez Burger", false)
+                            if not bought then
+                                isAutoUpgradeRunning = false
+                                return
+                            end
+                        end
+
+                        -- 10. Pizza (500 bricks)
+                        local pizzaBtnFolder = tycoonButtons:FindFirstChild("Buy Pizza")
+                        local pizzaBtn = pizzaBtnFolder and pizzaBtnFolder:FindFirstChild("Button")
+                        if pizzaBtn then
+                            local bought = handleButton(pizzaBtn, 500, "Pizza", false)
+                            if not bought then
+                                isAutoUpgradeRunning = false
+                                return
+                            end
+                        end
+
+                        -- 11. Continuous Bee purchases every 30 seconds
+                        while Settings.AutoUpgrade and ScriptRunning do
+                            local beeBtnFolder = tycoonButtons:FindFirstChild("Unlock Bees Button")
+                            local beeBtn = beeBtnFolder and beeBtnFolder:FindFirstChild("Button")
+                            if beeBtn and getBricks() >= 55 then
+                                local oldCFrame = beeBtn.CFrame
+                                beeBtn.CanCollide = false
+                                beeBtn.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame
+                                task.wait(0.5)
+                                beeBtn.CFrame = oldCFrame * CFrame.new(0, 50, 0)
+                                task.wait(1)
+                                
+                                -- Select bee
+                                for i = 1, 3 do
+                                    local success, err = pcall(function()
+                                        local screenGui = game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("ScreenGui")
+                                        local miscPopUp = screenGui and screenGui:FindFirstChild("MiscPopUpFrame")
+                                        local beeSelect = miscPopUp and miscPopUp:FindFirstChild("BeeSelectScreen")
+                                        if beeSelect and beeSelect.Visible then
+                                            firesignal(beeSelect.Frame.Choice2.Button.MouseButton1Click)
+                                            return true
+                                        end
+                                        return false
+                                    end)
+                                    if success and err then break end
+                                    task.wait(0.5)
+                                end
+                            end
+                            task.wait(30)
+                        end
                     else
                         print("[DEBUG] TycoonButtons folder not found!")
                     end
