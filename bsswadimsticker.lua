@@ -643,80 +643,25 @@ task.spawn(function()
     end
 end)
 
--- Loop 6: AutoHit (0.1s)
--- Helper: detect if the script UI is currently visible. We attempt multiple
--- safe checks (Rayfield API methods/flags or a ScreenGui with the window name).
-local function IsScriptUIVisible()
-    local ok, res = pcall(function()
-        if type(Rayfield) == "table" then
-            if Rayfield.GetVisibility ~= nil then
-                local s, v = pcall(function() return Rayfield:GetVisibility() end)
-                if s then return v end
-            end
-            if Rayfield.IsVisible ~= nil then
-                return Rayfield.IsVisible
-            end
-            if Rayfield.Visible ~= nil then
-                return Rayfield.Visible
-            end
-        end
-
-        if type(Window) == "table" then
-            if Window.GetVisibility ~= nil then
-                local s, v = pcall(function() return Window:GetVisibility() end)
-                if s then return v end
-            end
-            if Window.Visible ~= nil then
-                return Window.Visible
-            end
-        end
-
-        -- Check CoreGui for Rayfield ScreenGuis too (some exploits put UI into CoreGui)
-        local cg = CoreGui
-        if cg then
-            for _, g in pairs(cg:GetChildren()) do
-                if g:IsA("ScreenGui") then
-                    local gname = tostring(g.Name):lower()
-                    if gname:find("rayfield") or gname:find("bss") then
-                        if g.Enabled ~= nil then return g.Enabled end
-                        if g.Visible ~= nil then return g.Visible end
-                    end
-                end
-            end
-        end
-
-        local pg = LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui")
-        if pg then
-            local guiNames = {"bss schlip schlop benutzer schnittstelle", "Rayfield", "RayfieldGui"}
-            for _, guiName in ipairs(guiNames) do
-                local g = pg:FindFirstChild(guiName)
-                if g then
-                    if g.Enabled ~= nil then return g.Enabled end
-                    if g.Visible ~= nil then return g.Visible end
-                end
-            end
-        end
-
-        return false
-    end)
-
-    if ok then
-        return res == true
-    end
-    return false
-end
-
+-- Loop 6: AutoHit (0.05s) - Pausiert wenn Rayfield UI offen ist
 task.spawn(function()
     while ScriptRunning do
-            if Settings.AutoHit and game.PlaceId == 17579225831 then
-                if not IsScriptUIVisible() then
-                    pcall(function()
-                        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
-                        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
-                    end)
-                end
+        if Settings.AutoHit and game.PlaceId == 17579225831 then
+            -- Prüfe ob Rayfield UI sichtbar ist
+            local uiVisible = false
+            pcall(function()
+                uiVisible = Rayfield:IsVisible()
+            end)
+            
+            -- Nur AutoHit wenn UI nicht sichtbar ist
+            if not uiVisible then
+                pcall(function()
+                    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+                    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
+                end)
             end
-            task.wait(0.03)
+        end
+        task.wait(0.05)
     end
 end)
 
