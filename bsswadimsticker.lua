@@ -859,7 +859,7 @@ task.spawn(function()
                                 task.wait(0.15)
                             else
                                 cancelActiveAutoSlime()
-                                local tween = TweenService:Create(HumanoidRootPart, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
+                                local tween = TweenService:Creaate(HumanoidRootPart, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
                                 local platTween = TweenService:Create(platform, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = CFrame.new(collectTarget - Vector3.new(0, 3, 0))})
                                 tween:Play()
                                 platTween:Play()
