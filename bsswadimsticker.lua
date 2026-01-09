@@ -491,7 +491,7 @@ retroTab:CreateToggle({
         SaveConfig()
     end,
 })
-a
+
 retroTab:CreateToggle({
     Name = "auto tp retro lobby vip",
     CurrentValue = Settings.AutoTPRetroLobbyVIP,
