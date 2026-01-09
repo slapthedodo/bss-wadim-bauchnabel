@@ -55,7 +55,7 @@ local function cancelActiveAutoSlime()
         if AutoSlime_activeTween then pcall(function() AutoSlime_activeTween:Cancel() end) AutoSlime_activeTween = nil end
         if AutoSlime_activePlatTween then pcall(function() AutoSlime_activePlatTween:Cancel() end) AutoSlime_activePlatTween = nil end
         -- set a short block to prevent immediate restart
-        AutoSlime_blockUntil = tick() + 0.2
+        AutoSlime_blockUntil = tick() + 0.05
     end)
 end
 
@@ -856,7 +856,7 @@ task.spawn(function()
 
                             local targetCFrame = CFrame.new(collectTarget) * upRotation
                             if tick() < AutoSlime_blockUntil then
-                                task.wait(0.15)
+                                task.wait()
                             else
                                 cancelActiveAutoSlime()
                                 local tween = TweenService:Create(HumanoidRootPart, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
@@ -883,7 +883,7 @@ task.spawn(function()
                                 AutoSlime_activePlatTween = nil
                             end
 
-                            -- Berühre Token mit firetouchinterest für ~50ms
+                            -- Berühre Token mit firetouchinterest
                             pcall(function()
                                 local hrp = HumanoidRootPart
                                 if nextCollect and hrp and nextCollect:IsA("BasePart") and nextCollect.Parent then
@@ -910,7 +910,7 @@ task.spawn(function()
                             local targetCFrame = CFrame.new(fallbackPos) * upRotation
 
                             if tick() < AutoSlime_blockUntil then
-                                task.wait(0.2)
+                                task.wait()
                             else
                                 cancelActiveAutoSlime()
                                 local tween = TweenService:Create(HumanoidRootPart, tweenInfo, {CFrame = targetCFrame})
@@ -955,7 +955,7 @@ task.spawn(function()
 
                         local targetCFrame = CFrame.new(adjustedTarget) * upRotation
                         if tick() < AutoSlime_blockUntil then
-                            task.wait(0.2)
+                            task.wait()
                         else
                             cancelActiveAutoSlime()
                             local tween = TweenService:Create(HumanoidRootPart, tweenInfo, {CFrame = targetCFrame})
