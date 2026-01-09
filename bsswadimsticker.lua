@@ -941,7 +941,7 @@ task.spawn(function()
                             local farmCoords = {
                                 Vector3.new(-47014, 292, 64),
                                 Vector3.new(-46987, 292, 64),
-                                Vector3.new(-46987, 292, 86),
+      a                          Vector3.new(-46987, 292, 86),
                                 Vector3.new(-47014, 292, 86)
                             }
                             
