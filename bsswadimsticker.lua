@@ -725,27 +725,27 @@ task.spawn(function()
                         local folderName = tostring(monsterFolder.Name)
                         -- Match any Zombie or Slime regardless of level
                         if folderName:match("^Zombie") or folderName:match("^Slime") then
-                            for _, monster in pairs(monsterFolder:GetChildren()) do
-                                for _, desc in pairs(monster:GetDescendants()) do
-                                    if desc:IsA("BasePart") then
-                                        -- Only target the exact parts: Torso for Zombie, Blob2 for Slime
-                                        if folderName:match("^Zombie") and desc.Name == "Torso" then
-                                            local zDiff = math.abs(desc.Position.Z - 230)
-                                            local horizDist = (Vector2.new(desc.Position.X - HumanoidRootPart.Position.X, desc.Position.Z - 230)).Magnitude
-                                            if zDiff < bestZDiff or (zDiff == bestZDiff and horizDist < bestTie) then
-                                                bestZDiff = zDiff
-                                                bestTie = horizDist
-                                                TargetSlimeBlob = desc
-                                            end
+                            -- Suche direkt alle Nachkommen im Folder
+                            for _, desc in pairs(monsterFolder:GetDescendants()) do
+                                if desc:IsA("BasePart") then
+                                    -- Zombie: nur Torso angreifen
+                                    if folderName:match("^Zombie") and desc.Name == "Torso" then
+                                        local zDiff = math.abs(desc.Position.Z - 230)
+                                        local horizDist = (Vector2.new(desc.Position.X - HumanoidRootPart.Position.X, desc.Position.Z - 230)).Magnitude
+                                        if zDiff < bestZDiff or (zDiff == bestZDiff and horizDist < bestTie) then
+                                            bestZDiff = zDiff
+                                            bestTie = horizDist
+                                            TargetSlimeBlob = desc
                                         end
-                                        if folderName:match("^Slime") and desc.Name == "Blob2" then
-                                            local zDiff = math.abs(desc.Position.Z - 230)
-                                            local horizDist = (Vector2.new(desc.Position.X - HumanoidRootPart.Position.X, desc.Position.Z - 230)).Magnitude
-                                            if zDiff < bestZDiff or (zDiff == bestZDiff and horizDist < bestTie) then
-                                                bestZDiff = zDiff
-                                                bestTie = horizDist
-                                                TargetSlimeBlob = desc
-                                            end
+                                    end
+                                    -- Slime: nur Blob2 angreifen
+                                    if folderName:match("^Slime") and desc.Name == "Blob2" then
+                                        local zDiff = math.abs(desc.Position.Z - 230)
+                                        local horizDist = (Vector2.new(desc.Position.X - HumanoidRootPart.Position.X, desc.Position.Z - 230)).Magnitude
+                                        if zDiff < bestZDiff or (zDiff == bestZDiff and horizDist < bestTie) then
+                                            bestZDiff = zDiff
+                                            bestTie = horizDist
+                                            TargetSlimeBlob = desc
                                         end
                                     end
                                 end
@@ -769,26 +769,25 @@ task.spawn(function()
                                     local folderName = tostring(monsterFolder.Name)
                                     -- Match any Zombie or Slime regardless of level
                                     if folderName:match("^Zombie") or folderName:match("^Slime") then
-                                        for _, monster in pairs(monsterFolder:GetChildren()) do
-                                            for _, desc in pairs(monster:GetDescendants()) do
-                                                if desc:IsA("BasePart") then
-                                                    if folderName:match("^Zombie") and desc.Name == "Torso" then
-                                                        local zDiff = math.abs(desc.Position.Z - 230)
-                                                        local horizDist = (Vector2.new(desc.Position.X - HumanoidRootPart.Position.X, desc.Position.Z - 230)).Magnitude
-                                                        if zDiff < checkZDiff or (zDiff == checkZDiff and horizDist < checkTie) then
-                                                            checkZDiff = zDiff
-                                                            checkTie = horizDist
-                                                            CheckSlimeBlob = desc
-                                                        end
+                                        -- Suche direkt alle Nachkommen im Folder
+                                        for _, desc in pairs(monsterFolder:GetDescendants()) do
+                                            if desc:IsA("BasePart") then
+                                                if folderName:match("^Zombie") and desc.Name == "Torso" then
+                                                    local zDiff = math.abs(desc.Position.Z - 230)
+                                                    local horizDist = (Vector2.new(desc.Position.X - HumanoidRootPart.Position.X, desc.Position.Z - 230)).Magnitude
+                                                    if zDiff < checkZDiff or (zDiff == checkZDiff and horizDist < checkTie) then
+                                                        checkZDiff = zDiff
+                                                        checkTie = horizDist
+                                                        CheckSlimeBlob = desc
                                                     end
-                                                    if folderName:match("^Slime") and desc.Name == "Blob2" then
-                                                        local zDiff = math.abs(desc.Position.Z - 230)
-                                                        local horizDist = (Vector2.new(desc.Position.X - HumanoidRootPart.Position.X, desc.Position.Z - 230)).Magnitude
-                                                        if zDiff < checkZDiff or (zDiff == checkZDiff and horizDist < checkTie) then
-                                                            checkZDiff = zDiff
-                                                            checkTie = horizDist
-                                                            CheckSlimeBlob = desc
-                                                        end
+                                                end
+                                                if folderName:match("^Slime") and desc.Name == "Blob2" then
+                                                    local zDiff = math.abs(desc.Position.Z - 230)
+                                                    local horizDist = (Vector2.new(desc.Position.X - HumanoidRootPart.Position.X, desc.Position.Z - 230)).Magnitude
+                                                    if zDiff < checkZDiff or (zDiff == checkZDiff and horizDist < checkTie) then
+                                                        checkZDiff = zDiff
+                                                        checkTie = horizDist
+                                                        CheckSlimeBlob = desc
                                                     end
                                                 end
                                             end
