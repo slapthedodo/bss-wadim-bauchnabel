@@ -4,6 +4,7 @@ local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local TeleportService = game:GetService("TeleportService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
 
 local LocalPlayer = Players.LocalPlayer
 
@@ -33,6 +34,7 @@ local Settings = {
     AutoHit = false,
     AutoSlimeKill = false,
     AutoUpgrade = false,
+    AutoBuyBricks = false,
     InterruptAutoSlime = false
 }
 
@@ -185,6 +187,7 @@ local function LoadConfig()
             if result.AutoHit ~= nil then Settings.AutoHit = result.AutoHit end
             if result.AutoSlimeKill ~= nil then Settings.AutoSlimeKill = result.AutoSlimeKill end
             if result.AutoUpgrade ~= nil then Settings.AutoUpgrade = result.AutoUpgrade end
+            if result.AutoBuyBricks ~= nil then Settings.AutoBuyBricks = result.AutoBuyBricks end
         end
     end
 end
@@ -458,6 +461,16 @@ retroTab:CreateToggle({
     end,
 })
 
+retroTab:CreateToggle({
+    Name = "autobuy bricks",
+    CurrentValue = Settings.AutoBuyBricks,
+    Flag = "AutoBuyBricks",
+    Callback = function(Value)
+        Settings.AutoBuyBricks = Value
+        SaveConfig()
+    end,
+})
+
 -- TAB: Settings (Für Unload)
 local SettingsTab = Window:CreateTab("Settings", 4483362458)
 
@@ -632,17 +645,8 @@ task.spawn(function()
     while ScriptRunning do
         if Settings.AutoHit and game.PlaceId == 17579225831 then
             pcall(function()
-                local character = LocalPlayer.Character
-                if character then
-                    local classicSword = character:FindFirstChild("ClassicSword")
-                    if classicSword then
-                        local handle = classicSword:FindFirstChild("Handle")
-                        if handle then
-                            firetouchinterest(handle, character, 0)
-                            firetouchinterest(handle, character, 1)
-                        end
-                    end
-                end
+                VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+                VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
             end)
         end
         task.wait(0.1)
@@ -698,7 +702,7 @@ task.spawn(function()
                 local upRotation = CFrame.Angles(math.rad(90), 0, 0)
                 local targetY = 280
 
-                -- Slime finden: prüfe alle Blob*-Parts unter allen SlimeMonstern.
+                -- Monster-Target finden: prüfe nur Blob*-Parts (Slimes) und Torso (z.B. Zombies).
                 -- Priorität: kleinstes |Z-230|, Tie-Breaker: geringster horizontaler Abstand (X,Z) zur Z=230-Ebene in Relation zum Spieler
                 local TargetSlimeBlob = nil
                 local bestZDiff = math.huge
@@ -708,13 +712,16 @@ task.spawn(function()
                     for _, monsterFolder in pairs(workspace.Monsters:GetChildren()) do
                         for _, monster in pairs(monsterFolder:GetChildren()) do
                             for _, desc in pairs(monster:GetDescendants()) do
-                                if desc:IsA("BasePart") and tostring(desc.Name):match("^Blob") then
-                                    local zDiff = math.abs(desc.Position.Z - 230)
-                                    local horizDist = (Vector2.new(desc.Position.X - HumanoidRootPart.Position.X, desc.Position.Z - 230)).Magnitude
-                                    if zDiff < bestZDiff or (zDiff == bestZDiff and horizDist < bestTie) then
-                                        bestZDiff = zDiff
-                                        bestTie = horizDist
-                                        TargetSlimeBlob = desc
+                                if desc:IsA("BasePart") then
+                                    local partName = tostring(desc.Name)
+                                    if partName:match("^Blob") or partName == "Torso" then
+                                        local zDiff = math.abs(desc.Position.Z - 230)
+                                        local horizDist = (Vector2.new(desc.Position.X - HumanoidRootPart.Position.X, desc.Position.Z - 230)).Magnitude
+                                        if zDiff < bestZDiff or (zDiff == bestZDiff and horizDist < bestTie) then
+                                            bestZDiff = zDiff
+                                            bestTie = horizDist
+                                            TargetSlimeBlob = desc
+                                        end
                                     end
                                 end
                             end
@@ -736,13 +743,16 @@ task.spawn(function()
                             for _, monsterFolder in pairs(workspace.Monsters:GetChildren()) do
                                 for _, monster in pairs(monsterFolder:GetChildren()) do
                                     for _, desc in pairs(monster:GetDescendants()) do
-                                        if desc:IsA("BasePart") and tostring(desc.Name):match("^Blob") then
-                                            local zDiff = math.abs(desc.Position.Z - 230)
-                                            local horizDist = (Vector2.new(desc.Position.X - HumanoidRootPart.Position.X, desc.Position.Z - 230)).Magnitude
-                                            if zDiff < checkZDiff or (zDiff == checkZDiff and horizDist < checkTie) then
-                                                checkZDiff = zDiff
-                                                checkTie = horizDist
-                                                CheckSlimeBlob = desc
+                                        if desc:IsA("BasePart") then
+                                            local partName = tostring(desc.Name)
+                                            if partName:match("^Blob") or partName == "Torso" then
+                                                local zDiff = math.abs(desc.Position.Z - 230)
+                                                local horizDist = (Vector2.new(desc.Position.X - HumanoidRootPart.Position.X, desc.Position.Z - 230)).Magnitude
+                                                if zDiff < checkZDiff or (zDiff == checkZDiff and horizDist < checkTie) then
+                                                    checkZDiff = zDiff
+                                                    checkTie = horizDist
+                                                    CheckSlimeBlob = desc
+                                                end
                                             end
                                         end
                                     end
@@ -1079,5 +1089,31 @@ task.spawn(function()
             isAutoUpgradeRunning = false
         end
         task.wait(1)
+    end
+end)
+
+-- Loop 8: AutoBuyBricks (15s)
+task.spawn(function()
+    while ScriptRunning do
+        if Settings.AutoBuyBricks and game.PlaceId == 17579225831 then
+            pcall(function()
+                local character = LocalPlayer.Character
+                if character and character:FindFirstChild("HumanoidRootPart") then
+                    local hrp = character.HumanoidRootPart
+                    local button = workspace.ClassicMinigame.TycoonButtons["Buy 10 Bricks Button"].Button
+                    
+                    if button then
+                        local oldCFrame = button.CFrame
+                        button.CanCollide = false
+                        button.CFrame = hrp.CFrame
+                        task.wait(0.5)
+                        button.CFrame = oldCFrame * CFrame.new(0, 50, 0)
+                    end
+                end
+            end)
+            task.wait(15)
+        else
+            task.wait(1)
+        end
     end
 end)
