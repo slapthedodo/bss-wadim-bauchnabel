@@ -1038,7 +1038,7 @@ task.spawn(function()
             
             if isBee then
                 task.wait(1) -- Wait for UI to potentially appear
-                for i = 1, 5 do -- Try up to 5 times
+                for i = 1, 3 do -- Try up to 3 times
                     local success, err = pcall(function()
                         local screenGui = game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("ScreenGui")
                         local miscPopUp = screenGui and screenGui:FindFirstChild("MiscPopUpFrame")
@@ -1070,7 +1070,7 @@ task.spawn(function()
             if not isAutoUpgradeRunning then
                 isAutoUpgradeRunning = true
 
-                task.wait(15)
+                task.wait(12)
 
                 pcall(function()
                     local tycoonButtons = workspace:FindFirstChild("ClassicMinigame") and workspace.ClassicMinigame:FindFirstChild("TycoonButtons")
