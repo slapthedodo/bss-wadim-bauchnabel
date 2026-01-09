@@ -1015,7 +1015,6 @@ task.spawn(function()
             task.wait(5)
             return true
         else
-            print("[DEBUG] Cannot afford", name, "| Cost:", cost, "| Have:", bricks)
             return false
         end
     end
