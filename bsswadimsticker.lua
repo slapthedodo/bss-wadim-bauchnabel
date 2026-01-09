@@ -883,7 +883,7 @@ task.spawn(function()
                                 AutoSlime_activePlatTween = nil
                             end
 
-                            -- Berühre Token mit firetouchinterest für ~150ms
+                            -- Berühre Token mit firetouchinterest für ~50ms
                             pcall(function()
                                 local hrp = HumanoidRootPart
                                 if nextCollect and hrp and nextCollect:IsA("BasePart") and nextCollect.Parent then
@@ -891,7 +891,7 @@ task.spawn(function()
                                     firetouchinterest(nextCollect, hrp, 1)
                                 end
                             end)
-                            task.wait(0.15)
+                            task.wait(0.05)
                         else
                             -- Keine Token mehr gefunden, beende Loop
                             collectingTokens = false
