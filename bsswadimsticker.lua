@@ -728,7 +728,7 @@ task.spawn(function()
                 
                 -- Rotation fixieren: Schaut nach oben (Bauch nach unten, Gesicht zum Himmel)
                 local upRotation = CFrame.Angles(math.rad(90), 0, 0)
-                local targetY = 280
+                local targetY = 283
 
                 -- Monster-Target finden: prüfe nur Blob*-Parts (Slimes) und Torso (z.B. Zombies).
                 -- Priorität: kleinstes |Z-230|, Tie-Breaker: geringster horizontaler Abstand (X,Z) zur Z=230-Ebene in Relation zum Spieler
