@@ -618,7 +618,7 @@ task.spawn(function()
         if Settings.Autoretro and game.PlaceId ~= 17579225831 then
             TeleportService:Teleport(17579225831, LocalPlayer)
         elseif Settings.AutoTPRetroLobbyVIP then
-            TeleportService:TeleportToPrivateServer(17579226768, "17637137661350244297654073087255", LocalPlayer)
+            TeleportService:TeleportToPrivateServer(17579226768, "17637137661350244297654073087255", {LocalPlayer})
         end
         task.wait(5)
     end
