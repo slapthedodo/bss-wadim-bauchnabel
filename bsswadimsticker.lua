@@ -35,8 +35,7 @@ local Settings = {
     AutoSlimeKill = false,
     AutoUpgrade = false,
     AutoBuyBricks = false,
-    InterruptAutoSlime = false,
-    AutoTPRetroLobbyVIP = false
+    InterruptAutoSlime = false
 }
 
 -- Active tween handles for AutoSlimeKill (accessible globally so UI can interrupt)
@@ -192,7 +191,6 @@ local function LoadConfig()
             if result.AutoSlimeKill ~= nil then Settings.AutoSlimeKill = result.AutoSlimeKill end
             if result.AutoUpgrade ~= nil then Settings.AutoUpgrade = result.AutoUpgrade end
             if result.AutoBuyBricks ~= nil then Settings.AutoBuyBricks = result.AutoBuyBricks end
-            if result.AutoTPRetroLobbyVIP ~= nil then Settings.AutoTPRetroLobbyVIP = result.AutoTPRetroLobbyVIP end
         end
     end
 end
@@ -492,16 +490,6 @@ retroTab:CreateToggle({
     end,
 })
 
-retroTab:CreateToggle({
-    Name = "auto tp retro lobby vip",
-    CurrentValue = Settings.AutoTPRetroLobbyVIP,
-    Flag = "AutoTPRetroLobbyVIP",
-    Callback = function(Value)
-        Settings.AutoTPRetroLobbyVIP = Value
-        SaveConfig()
-    end,
-})
-
 -- TAB: Settings (Für Unload)
 local SettingsTab = Window:CreateTab("Settings", 4483362458)
 
@@ -614,11 +602,9 @@ end)
 
 -- Loop 3: Auto Teleport (5s)
 task.spawn(function()
-    while ScriptRunning do
-        if Settings.Autoretro and game.PlaceId ~= 17579225831 then
+    while ScriptRunning and game.PlaceId ~= 17579225831 do
+        if Settings.Autoretro then
             TeleportService:Teleport(17579225831, LocalPlayer)
-        elseif Settings.AutoTPRetroLobbyVIP then
-            TeleportService:TeleportToPrivateServer(17579226768, "17637137661350244297654073087255", {LocalPlayer})
         end
         task.wait(5)
     end
