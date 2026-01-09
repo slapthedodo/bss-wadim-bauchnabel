@@ -646,8 +646,9 @@ end)
 local function IsScriptUIVisible()
     local ok, res = pcall(function()
         if type(Rayfield) == "table" then
-            if Rayfield.GetVisibility then
-                return Rayfield:GetVisibility()
+            if Rayfield.GetVisibility ~= nil then
+                local s, v = pcall(function() return Rayfield:GetVisibility() end)
+                if s then return v end
             end
             if Rayfield.IsVisible ~= nil then
                 return Rayfield.IsVisible
@@ -656,23 +657,34 @@ local function IsScriptUIVisible()
                 return Rayfield.Visible
             end
         end
-        if type(Window) == "table" and Window.Visible ~= nil then
-            return Window.Visible
+
+        if type(Window) == "table" then
+            if Window.GetVisibility ~= nil then
+                local s, v = pcall(function() return Window:GetVisibility() end)
+                if s then return v end
+            end
+            if Window.Visible ~= nil then
+                return Window.Visible
+            end
         end
 
         local pg = LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui")
         if pg then
-            local guiName = "bss schlip schlop benutzer schnittstelle"
-            local g = pg:FindFirstChild(guiName) or pg:FindFirstChild("Rayfield") or pg:FindFirstChild("RayfieldGui")
-            if g and g.Enabled ~= nil then
-                return g.Enabled
+            local guiNames = {"bss schlip schlop benutzer schnittstelle", "Rayfield", "RayfieldGui"}
+            for _, guiName in ipairs(guiNames) do
+                local g = pg:FindFirstChild(guiName)
+                if g then
+                    if g.Enabled ~= nil then return g.Enabled end
+                    if g.Visible ~= nil then return g.Visible end
+                end
             end
         end
 
         return false
     end)
-    if ok and res then
-        return true
+
+    if ok then
+        return res == true
     end
     return false
 end
@@ -752,7 +764,8 @@ task.spawn(function()
                             for _, desc in pairs(monster:GetDescendants()) do
                                 if desc:IsA("BasePart") then
                                     local partName = tostring(desc.Name)
-                                    if partName:match("^Blob") or partName == "Torso" then
+                                    local lname = partName:lower()
+                                    if lname:match("^blob") or lname:find("torso") then
                                         local zDiff = math.abs(desc.Position.Z - 230)
                                         local horizDist = (Vector2.new(desc.Position.X - HumanoidRootPart.Position.X, desc.Position.Z - 230)).Magnitude
                                         if zDiff < bestZDiff or (zDiff == bestZDiff and horizDist < bestTie) then
@@ -783,7 +796,8 @@ task.spawn(function()
                                     for _, desc in pairs(monster:GetDescendants()) do
                                         if desc:IsA("BasePart") then
                                             local partName = tostring(desc.Name)
-                                            if partName:match("^Blob") or partName == "Torso" then
+                                            local lname = partName:lower()
+                                            if lname:match("^blob") or lname:find("torso") then
                                                 local zDiff = math.abs(desc.Position.Z - 230)
                                                 local horizDist = (Vector2.new(desc.Position.X - HumanoidRootPart.Position.X, desc.Position.Z - 230)).Magnitude
                                                 if zDiff < checkZDiff or (zDiff == checkZDiff and horizDist < checkTie) then
@@ -1118,8 +1132,10 @@ task.spawn(function()
                     end
                 end)
 
-                -- After completing the cycle, keep Settings.AutoUpgrade as-is so it doesn't
-                -- automatically turn off (user can toggle it manually).
+                -- After completing the cycle, disable the toggle so it only runs once
+                -- per user activation, but do this only after the purchase cycle
+                -- finished to avoid premature self-disabling.
+                Settings.AutoUpgrade = false
                 SaveConfig()
                 isAutoUpgradeRunning = false
             end
