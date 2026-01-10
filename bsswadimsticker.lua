@@ -65,8 +65,10 @@ local function cancelActiveAutoSlime()
     end)
 end
 
+local lastEquipTime = 0
 local function EquipTool(toolName)
     if not ScriptRunning then return end
+    if tick() - lastEquipTime < 0.5 then return end
 
     local character = LocalPlayer.Character
     if not character then return end
@@ -75,9 +77,10 @@ local function EquipTool(toolName)
     
     if toolName == "FarmingTool" then
         if currentTool and (currentTool.Name == "ClassicSword" or currentTool.Name == "ClassicFirebrand") then
-            print("[DEBUG] Unequipping " .. currentTool.Name .. " to use Farming Tool")
+            local oldName = currentTool.Name
+            local remoteName = (oldName == "ClassicSword" and "Sword") or (oldName == "ClassicFirebrand" and "Firebrand")
+            print("[DEBUG] Unequipping " .. oldName .. " (Remote: " .. tostring(remoteName) .. ")")
             pcall(function()
-                local remoteName = (currentTool.Name == "ClassicSword" and "Sword") or (currentTool.Name == "ClassicFirebrand" and "Firebrand")
                 local args = {
                     [1] = {
                         ["Name"] = remoteName
@@ -85,7 +88,9 @@ local function EquipTool(toolName)
                 }
                 ReplicatedStorage.Events.PlayerActivesCommand:FireServer(unpack(args))
             end)
-            task.wait(0.1)
+            currentEquippedSword = nil
+            lastEquipTime = tick()
+            task.wait(0.2)
         end
     else -- Equip a sword
         local remoteName = (toolName == "ClassicSword" and "Sword") or (toolName == "ClassicFirebrand" and "Firebrand")
@@ -103,7 +108,9 @@ local function EquipTool(toolName)
             }
             ReplicatedStorage.Events.PlayerActivesCommand:FireServer(unpack(args))
         end)
-        task.wait(0.1)
+        currentEquippedSword = toolName
+        lastEquipTime = tick()
+        task.wait(0.2)
     end
 end
 
@@ -248,21 +255,27 @@ end
 LoadConfig()
 
 task.spawn(function()
+    local lastPrint = 0
     while ScriptRunning do
         hasClassicSword = LocalPlayer.Backpack:FindFirstChild("ClassicSword") ~= nil or (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("ClassicSword") ~= nil)
-        hasFirebrand = LocalPlayer.Backpack:FindFirstChild("Firebrand") ~= nil or (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Firebrand") ~= nil)
+        hasFirebrand = LocalPlayer.Backpack:FindFirstChild("ClassicFirebrand") ~= nil or (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("ClassicFirebrand") ~= nil)
 
         local equippedTool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
         if equippedTool then
             if equippedTool.Name == "ClassicSword" then
                 currentEquippedSword = "ClassicSword"
-            elseif equippedTool.Name == "Firebrand" then
-                currentEquippedSword = "Firebrand"
+            elseif equippedTool.Name == "ClassicFirebrand" then
+                currentEquippedSword = "ClassicFirebrand"
             else
-                currentEquippedSword = nil -- Some other tool, or the farming tool
+                currentEquippedSword = nil -- Farming tool or other
             end
         else
-            currentEquippedSword = nil -- No tool equipped
+            currentEquippedSword = nil -- No tool
+        end
+        
+        if tick() - lastPrint > 10 then
+            print("[DEBUG] Owned: Sword="..tostring(hasClassicSword)..", Firebrand="..tostring(hasFirebrand).." | Equipped: "..tostring(currentEquippedSword))
+            lastPrint = tick()
         end
         task.wait(0.5)
     end
@@ -968,6 +981,9 @@ task.spawn(function()
                                 task.wait()
                             else
                                 cancelActiveAutoSlime()
+                                if currentEquippedSword ~= nil and tick() - lastEquipTime > 0.5 then
+                                    EquipTool("FarmingTool")
+                                end
                                 local tween = TweenService:Create(HumanoidRootPart, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
                                 local platTween = TweenService:Create(platform, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = CFrame.new(collectTarget - Vector3.new(0, 3, 0))})
                                 tween:Play()
@@ -1012,6 +1028,9 @@ task.spawn(function()
                     if not TargetSlimeBlob then
                         if Settings.FarmPollen and CurrentRound >= 0 and CurrentRound <= 6 then
                             -- Farm Pollen Logic for Rounds 0-6
+                            if currentEquippedSword ~= nil and tick() - lastEquipTime > 0.5 then
+                                EquipTool("FarmingTool")
+                            end
                             local farmCoords = {
                                 Vector3.new(-47030, 290, 64),
                                 Vector3.new(-46985, 290, 64),
@@ -1144,12 +1163,12 @@ task.spawn(function()
                             cancelActiveAutoSlime()
 
                             -- Equip sword before tweening to monster
-                            if hasFirebrand and currentEquippedSword ~= "Firebrand" then
-                                EquipTool("Firebrand")
-                                task.wait(0.2)
-                            elseif hasClassicSword and currentEquippedSword ~= "ClassicSword" then
+                            if hasFirebrand and currentEquippedSword ~= "ClassicFirebrand" and tick() - lastEquipTime > 0.5 then
+                                EquipTool("ClassicFirebrand")
+                                task.wait(0.1)
+                            elseif hasClassicSword and currentEquippedSword ~= "ClassicSword" and tick() - lastEquipTime > 0.5 then
                                 EquipTool("ClassicSword")
-                                task.wait(0.2)
+                                task.wait(0.1)
                             end
 
                             local tween = TweenService:Create(HumanoidRootPart, tweenInfo, {CFrame = targetCFrame})
@@ -1179,6 +1198,11 @@ task.spawn(function()
                             AutoSlime_activePlatTween = nil
                         end
                     else
+                        if hasFirebrand and currentEquippedSword ~= "ClassicFirebrand" and tick() - lastEquipTime > 0.5 then
+                            EquipTool("ClassicFirebrand")
+                        elseif hasClassicSword and currentEquippedSword ~= "ClassicSword" and tick() - lastEquipTime > 0.5 then
+                            EquipTool("ClassicSword")
+                        end
                         HumanoidRootPart.CFrame = CFrame.new(HumanoidRootPart.Position.X, targetY, HumanoidRootPart.Position.Z) * upRotation
                         platform.CFrame = CFrame.new(HumanoidRootPart.Position - Vector3.new(0, 3, 0))
                     end
