@@ -39,7 +39,8 @@ local Settings = {
     FarmPollen = false,
     AutoToolSwitch = false,
     KillAuraVisual = false,
-    KillAuraRange = 50
+    KillAuraRange = 50,
+    KillAuraTrigger = 5
 }
 
 -- Global states for equipped/owned items
@@ -254,6 +255,7 @@ local function LoadConfig()
             if result.AutoToolSwitch ~= nil then Settings.AutoToolSwitch = result.AutoToolSwitch end
             if result.KillAuraVisual ~= nil then Settings.KillAuraVisual = result.KillAuraVisual end
             if result.KillAuraRange ~= nil then Settings.KillAuraRange = result.KillAuraRange end
+            if result.KillAuraTrigger ~= nil then Settings.KillAuraTrigger = result.KillAuraTrigger end
         end
     end
 end
@@ -647,6 +649,19 @@ retroTab:CreateSlider({
     Flag = "KillAuraRange",
     Callback = function(Value)
         Settings.KillAuraRange = Value
+        SaveConfig()
+    end,
+})
+
+retroTab:CreateSlider({
+    Name = "KillAura Trigger Count",
+    Range = {2, 8},
+    Increment = 1,
+    Suffix = "enemies",
+    CurrentValue = Settings.KillAuraTrigger,
+    Flag = "KillAuraTrigger",
+    Callback = function(Value)
+        Settings.KillAuraTrigger = Value
         SaveConfig()
     end,
 })
@@ -1714,8 +1729,15 @@ task.spawn(function()
                     end
                 end
 
-                countLabel.Text = "gegnär: " .. enemyCount
-                -- Change color based on if enemies are inside
+                local trigger = Settings.KillAuraTrigger
+                countLabel.Text = string.format("gegnär: %d/%d", enemyCount, trigger)
+
+                if enemyCount >= trigger then
+                    Settings.AutoSlimeKill = true
+                elseif enemyCount == 0 then
+                    Settings.AutoSlimeKill = false
+                end
+
                 if enemyCount > 0 then
                     ringStroke.Color = Color3.fromRGB(255, 0, 0)
                     countLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
@@ -1729,7 +1751,7 @@ task.spawn(function()
         else
             cleanup()
         end
-        task.wait(0.1)
+        task.wait()
     end
     cleanup()
 end)
