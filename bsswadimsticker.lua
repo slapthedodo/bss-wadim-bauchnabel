@@ -282,8 +282,8 @@ task.spawn(function()
                 print("owned: Sword="..tostring(hasClassicSword)..", firebrand="..tostring(hasFirebrand)..", illumina="..tostring(hasIllumina).." equipped: "..tostring(currentEquippedSword))
                 lastPrint = tick()
             end
-            task.wait(0.5)
         end
+        task.wait(0.5)
     end
 end)
 
