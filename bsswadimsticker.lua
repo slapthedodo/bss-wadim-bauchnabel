@@ -1009,10 +1009,10 @@ task.spawn(function()
                         if Settings.FarmPollen and CurrentRound >= 0 and CurrentRound <= 6 then
                             -- Farm Pollen Logic for Rounds 0-6
                             local farmCoords = {
-                                Vector3.new(-47030, 288, 64),
-                                Vector3.new(-46985, 288, 64),
-                                Vector3.new(-46985, 288, 86),
-                                Vector3.new(-47030, 288, 86)
+                                Vector3.new(-47030, 291, 64),
+                                Vector3.new(-46985, 291, 64),
+                                Vector3.new(-46985, 291, 86),
+                                Vector3.new(-47030, 291, 86)
                             }
                             
                             local firstCoord = true
