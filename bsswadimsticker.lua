@@ -1745,7 +1745,7 @@ task.spawn(function()
         else
             cleanup()
         end
-        task.wait()
+        task.wait(.02)
     end
     cleanup()
 end)
