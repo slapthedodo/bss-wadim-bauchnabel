@@ -17,7 +17,6 @@ local HiveClaimedInretro = false
 -- Global variables for equipped tools and ownership
 local hasClassicSword = false
 local hasFirebrand = false
-local currentlyEquippedTool = "Farming Tool" -- Assume farming tool initially
 
 -- Dateiname für Config
 local FileName = "BeeSwarmSchlipSchlop_" .. LocalPlayer.UserId .. ".json"
@@ -65,53 +64,35 @@ local function cancelActiveAutoSlime()
     end)
 end
 
--- Helper function to get currently equipped tool by checking backpack
-local function getEquippedToolInBackpack()
-    local backpack = LocalPlayer:FindFirstChild("Backpack")
-    if not backpack then return "Farming Tool" end -- Default if no backpack found
-
-    local classicSwordInBackpack = backpack:FindFirstChild("Classic Sword")
-    local firebrandInBackpack = backpack:FindFirstChild("Firebrand")
-
-    if not classicSwordInBackpack and hasClassicSword then
-        return "Classic Sword"
-    elseif not firebrandInBackpack and hasFirebrand then
-        return "Firebrand"
-    else
-        return "Farming Tool"
+-- Helper function to get currently held tool from character
+local function getHeldTool()
+    local char = LocalPlayer.Character
+    if char then
+        if char:FindFirstChild("Firebrand") then return "Firebrand" end
+        if char:FindFirstChild("Classic Sword") then return "Classic Sword" end
     end
+    return "Farming Tool"
 end
 
 -- Function to equip a specific tool
 local function equipTool(toolName)
+    local held = getHeldTool()
     if toolName == "Farming Tool" then
-        -- To equip the farming tool, we must unequip any currently held sword.
-        if currentlyEquippedTool == "Classic Sword" or currentlyEquippedTool == "Firebrand" then
-            local swordToUnequip = currentlyEquippedTool
+        if held ~= "Farming Tool" then
             pcall(function()
-                local args = {
-                    [1] = {
-                        ["Name"] = swordToUnequip
-                    }
-                }
+                local args = {[1] = {["Name"] = held}}
                 game:GetService("ReplicatedStorage").Events.PlayerActivesCommand:FireServer(unpack(args))
-                currentlyEquippedTool = "Farming Tool"
-                print("Unequipped " .. swordToUnequip .. " to bring out Farming Tool")
+                print("Unequipping " .. held .. " to get Farming Tool")
             end)
             task.wait(0.2)
         end
     else
-        -- To equip a sword, only fire if it's not already held
-        if currentlyEquippedTool ~= toolName then
+        -- toolName is "Firebrand" or "Classic Sword"
+        if held ~= toolName then
             pcall(function()
-                local args = {
-                    [1] = {
-                        ["Name"] = toolName
-                    }
-                }
+                local args = {[1] = {["Name"] = toolName}}
                 game:GetService("ReplicatedStorage").Events.PlayerActivesCommand:FireServer(unpack(args))
-                currentlyEquippedTool = toolName
-                print("Equipped: " .. toolName)
+                print("Equipping " .. toolName)
             end)
             task.wait(0.2)
         end
@@ -1004,10 +985,10 @@ task.spawn(function()
                         if Settings.FarmPollen and CurrentRound >= 0 and CurrentRound <= 6 then
                             -- Farm Pollen Logic for Rounds 0-6
                             local farmCoords = {
-                                Vector3.new(-47030, 288, 64),
-                                Vector3.new(-46985, 288, 64),
-                                Vector3.new(-46985, 288, 86),
-                                Vector3.new(-47030, 288, 86)
+                                Vector3.new(-47030, 291, 64),
+                                Vector3.new(-46985, 291, 64),
+                                Vector3.new(-46985, 291, 86),
+                                Vector3.new(-47030, 291, 86)
                             }
                             
                             local firstCoord = true
@@ -1505,9 +1486,6 @@ task.spawn(function()
                 hasClassicSword = (starterGear and starterGear:FindFirstChild("Classic Sword") ~= nil)
                 hasFirebrand = (starterGear and starterGear:FindFirstChild("Firebrand") ~= nil)
             end
-
-            -- Update currently equipped tool based on backpack contents
-            currentlyEquippedTool = getEquippedToolInBackpack()
         end)
         task.wait(2)
     end
