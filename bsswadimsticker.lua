@@ -65,41 +65,37 @@ local function cancelActiveAutoSlime()
     end)
 end
 
-local function EquipTool(toolName)
+local function EquipTool(targetRemoteName)
     if not ScriptRunning then return end
-
     local character = LocalPlayer.Character
     if not character then return end
 
-    local currentTool = character:FindFirstChildOfClass("Tool")
+    print("[DEBUG] EquipTool called for: " .. tostring(targetRemoteName) .. " | Current: " .. tostring(currentEquippedSword))
 
-    if toolName == "FarmingTool" then
-        if currentTool and (currentTool.Name == "ClassicSword" or currentTool.Name == "Firebrand") then
-            -- Unequip the current sword to get the farming tool
+    if targetRemoteName == "FarmingTool" then
+        if currentEquippedSword ~= nil then
+            print("[DEBUG] Unequipping " .. currentEquippedSword .. " to get Farming Tool")
             pcall(function()
-                local args = {
-                    [1] = {
-                        ["Name"] = currentTool.Name
-                    }
-                }
+                local args = {[1] = {["Name"] = currentEquippedSword}}
                 ReplicatedStorage.Events.PlayerActivesCommand:FireServer(unpack(args))
             end)
-            task.wait(0.1) -- Short wait for the tool to unequip
+            task.wait(0.2)
+        else
+            print("[DEBUG] Already have Farming Tool (no sword equipped)")
         end
-    else -- It's a sword to equip
-        if currentTool and currentTool.Name == toolName then
-            return -- Already equipped
+    else
+        -- It's a sword: "Sword" or "Firebrand"
+        if currentEquippedSword == targetRemoteName then
+            print("[DEBUG] Already equipped " .. targetRemoteName)
+            return
         end
 
+        print("[DEBUG] Equipping " .. targetRemoteName)
         pcall(function()
-            local args = {
-                [1] = {
-                    ["Name"] = toolName
-                }
-            }
+            local args = {[1] = {["Name"] = targetRemoteName}}
             ReplicatedStorage.Events.PlayerActivesCommand:FireServer(unpack(args))
         end)
-        task.wait(0.1) -- Short wait for the tool to equip
+        task.wait(0.2)
     end
 end
 
@@ -246,19 +242,19 @@ LoadConfig()
 task.spawn(function()
     while ScriptRunning do
         hasClassicSword = LocalPlayer.Backpack:FindFirstChild("ClassicSword") ~= nil or (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("ClassicSword") ~= nil)
-        hasFirebrand = LocalPlayer.Backpack:FindFirstChild("Firebrand") ~= nil or (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Firebrand") ~= nil)
+        hasFirebrand = LocalPlayer.Backpack:FindFirstChild("ClassicFirebrand") ~= nil or (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("ClassicFirebrand") ~= nil)
 
         local equippedTool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
         if equippedTool then
             if equippedTool.Name == "ClassicSword" then
-                currentEquippedSword = "ClassicSword"
-            elseif equippedTool.Name == "Firebrand" then
+                currentEquippedSword = "Sword"
+            elseif equippedTool.Name == "ClassicFirebrand" then
                 currentEquippedSword = "Firebrand"
             else
-                currentEquippedSword = nil -- Some other tool, or the farming tool
+                currentEquippedSword = nil 
             end
         else
-            currentEquippedSword = nil -- No tool equipped
+            currentEquippedSword = nil 
         end
         task.wait(0.5)
     end
@@ -1007,6 +1003,10 @@ task.spawn(function()
                     -- Nach Token-Sammeln: Falls keine Slimes gefunden, gehe zur Fallback Position
                     if not TargetSlimeBlob then
                         if Settings.FarmPollen and CurrentRound >= 0 and CurrentRound <= 6 then
+                            -- Ensure Farming Tool is equipped for farming
+                            if currentEquippedSword ~= nil then
+                                EquipTool("FarmingTool")
+                            end
                             -- Farm Pollen Logic for Rounds 0-6
                             local farmCoords = {
                                 Vector3.new(-47030, 290, 64),
@@ -1080,6 +1080,9 @@ task.spawn(function()
                             end
                         else
                             -- Original Fallback Logic
+                            if currentEquippedSword ~= nil then
+                                EquipTool("FarmingTool")
+                            end
                             local fallbackPos = Vector3.new(-47064, 291.907898, -183.909866)
                             local distance = (fallbackPos - HumanoidRootPart.Position).Magnitude
                             if distance > 1 then
@@ -1203,6 +1206,9 @@ task.spawn(function()
                         LocalPlayer.Character.HumanoidRootPart.AssemblyAngularVelocity = Vector3.zero
                     end
                 end)
+                if currentEquippedSword ~= nil then
+                    EquipTool("FarmingTool")
+                end
             end
         end
         task.wait()
