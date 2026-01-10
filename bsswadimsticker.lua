@@ -14,10 +14,6 @@ local ScriptRunning = true
 -- Variable for AutoClaimHive state (Setzt sich bei Join auf false)
 local HiveClaimedInretro = false
 
--- Global variables for equipped tools and ownership
-local hasClassicSword = false
-local hasFirebrand = false
-
 -- Dateiname für Config
 local FileName = "BeeSwarmSchlipSchlop_" .. LocalPlayer.UserId .. ".json"
 
@@ -43,6 +39,11 @@ local Settings = {
     FarmPollen = false
 }
 
+-- Global states for equipped/owned items
+local hasClassicSword = false
+local hasFirebrand = false
+local currentEquippedSword = nil -- Can be "ClassicSword", "Firebrand", or nil (for farming tool)
+
 -- Active tween handles for AutoSlimeKill (accessible globally so UI can interrupt)
 local AutoSlime_activeTween = nil
 local AutoSlime_activePlatTween = nil
@@ -64,38 +65,41 @@ local function cancelActiveAutoSlime()
     end)
 end
 
--- Helper function to get currently held tool from character
-local function getHeldTool()
-    local char = LocalPlayer.Character
-    if char then
-        if char:FindFirstChild("Firebrand") then return "Firebrand" end
-        if char:FindFirstChild("Classic Sword") then return "Classic Sword" end
-    end
-    return "Farming Tool"
-end
+local function EquipTool(toolName)
+    if not ScriptRunning then return end
 
--- Function to equip a specific tool
-local function equipTool(toolName)
-    local held = getHeldTool()
-    if toolName == "Farming Tool" then
-        if held ~= "Farming Tool" then
+    local character = LocalPlayer.Character
+    if not character then return end
+
+    local currentTool = character:FindFirstChildOfClass("Tool")
+
+    if toolName == "FarmingTool" then
+        if currentTool and (currentTool.Name == "ClassicSword" or currentTool.Name == "Firebrand") then
+            -- Unequip the current sword to get the farming tool
             pcall(function()
-                local args = {[1] = {["Name"] = held}}
-                game:GetService("ReplicatedStorage").Events.PlayerActivesCommand:FireServer(unpack(args))
-                print("Unequipping " .. held .. " to get Farming Tool")
+                local args = {
+                    [1] = {
+                        ["Name"] = currentTool.Name
+                    }
+                }
+                ReplicatedStorage.Events.PlayerActivesCommand:FireServer(unpack(args))
             end)
-            task.wait(0.2)
+            task.wait(0.1) -- Short wait for the tool to unequip
         end
-    else
-        -- toolName is "Firebrand" or "Classic Sword"
-        if held ~= toolName then
-            pcall(function()
-                local args = {[1] = {["Name"] = toolName}}
-                game:GetService("ReplicatedStorage").Events.PlayerActivesCommand:FireServer(unpack(args))
-                print("Equipping " .. toolName)
-            end)
-            task.wait(0.2)
+    else -- It's a sword to equip
+        if currentTool and currentTool.Name == toolName then
+            return -- Already equipped
         end
+
+        pcall(function()
+            local args = {
+                [1] = {
+                    ["Name"] = toolName
+                }
+            }
+            ReplicatedStorage.Events.PlayerActivesCommand:FireServer(unpack(args))
+        end)
+        task.wait(0.1) -- Short wait for the tool to equip
     end
 end
 
@@ -238,6 +242,27 @@ end
 
 -- Config laden
 LoadConfig()
+
+task.spawn(function()
+    while ScriptRunning do
+        hasClassicSword = LocalPlayer.Backpack:FindFirstChild("ClassicSword") ~= nil or (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("ClassicSword") ~= nil)
+        hasFirebrand = LocalPlayer.Backpack:FindFirstChild("Firebrand") ~= nil or (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Firebrand") ~= nil)
+
+        local equippedTool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
+        if equippedTool then
+            if equippedTool.Name == "ClassicSword" then
+                currentEquippedSword = "ClassicSword"
+            elseif equippedTool.Name == "Firebrand" then
+                currentEquippedSword = "Firebrand"
+            else
+                currentEquippedSword = nil -- Some other tool, or the farming tool
+            end
+        else
+            currentEquippedSword = nil -- No tool equipped
+        end
+        task.wait(0.5)
+    end
+end)
 
 -- Laufend die aktuelle Brick-Anzahl pollen (keine Logs)
 local CurrentBricks = 0
@@ -939,7 +964,6 @@ task.spawn(function()
                                 task.wait()
                             else
                                 cancelActiveAutoSlime()
-                                equipTool("Farming Tool")
                                 local tween = TweenService:Create(HumanoidRootPart, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
                                 local platTween = TweenService:Create(platform, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = CFrame.new(collectTarget - Vector3.new(0, 3, 0))})
                                 tween:Play()
@@ -985,10 +1009,10 @@ task.spawn(function()
                         if Settings.FarmPollen and CurrentRound >= 0 and CurrentRound <= 6 then
                             -- Farm Pollen Logic for Rounds 0-6
                             local farmCoords = {
-                                Vector3.new(-47030, 291, 64),
-                                Vector3.new(-46985, 291, 64),
-                                Vector3.new(-46985, 291, 86),
-                                Vector3.new(-47030, 291, 86)
+                                Vector3.new(-47030, 288, 64),
+                                Vector3.new(-46985, 288, 64),
+                                Vector3.new(-46985, 288, 86),
+                                Vector3.new(-47030, 288, 86)
                             }
                             
                             local firstCoord = true
@@ -1013,7 +1037,6 @@ task.spawn(function()
                                 
                                 if tick() >= AutoSlime_blockUntil then
                                     cancelActiveAutoSlime()
-                                    equipTool("Farming Tool")
                                     local tween = TweenService:Create(HumanoidRootPart, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
                                     local platTween = TweenService:Create(platform, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = CFrame.new(targetPos - Vector3.new(0, 3, 0))})
                                     
@@ -1041,10 +1064,10 @@ task.spawn(function()
                                     AutoSlime_activePlatTween = nil
                                     
                                     if firstCoord and not sprinklerPlaced then
-                                        -- Ensure Farming Tool is equipped before placing sprinkler
-                                        equipTool("Farming Tool")
-                                        task.wait(0.1) -- Small wait for equip to register
-
+                                        if currentEquippedSword ~= nil then
+                                            EquipTool("FarmingTool")
+                                        end
+                                        task.wait(0.2) -- Give some time for the tool to unequip
                                         -- Place Sprinkler at the first coordinate
                                         pcall(function()
                                             local args = {[1] = {["Name"] = "Sprinkler Builder"}}
@@ -1110,24 +1133,21 @@ task.spawn(function()
                         local duration = distance / speed
                         local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
 
-                        -- Determine which sword to equip
-                        local toolToEquip = nil
-                        if hasFirebrand then
-                            toolToEquip = "Firebrand"
-                        elseif hasClassicSword then
-                            toolToEquip = "Classic Sword"
-                        end
-
-                        if toolToEquip then
-                            equipTool(toolToEquip)
-                            task.wait(0.1) -- Small wait for equip to register
-                        end
-
                         local targetCFrame = CFrame.new(adjustedTarget) * upRotation
                         if tick() < AutoSlime_blockUntil then
                             task.wait()
                         else
                             cancelActiveAutoSlime()
+
+                            -- Equip sword before tweening to monster
+                            if hasFirebrand and currentEquippedSword ~= "Firebrand" then
+                                EquipTool("Firebrand")
+                                task.wait(0.2)
+                            elseif hasClassicSword and currentEquippedSword ~= "ClassicSword" then
+                                EquipTool("ClassicSword")
+                                task.wait(0.2)
+                            end
+
                             local tween = TweenService:Create(HumanoidRootPart, tweenInfo, {CFrame = targetCFrame})
                             local platTween = TweenService:Create(platform, tweenInfo, {CFrame = CFrame.new(adjustedTarget - Vector3.new(0, 3, 0))})
 
@@ -1469,24 +1489,5 @@ task.spawn(function()
         else
             task.wait(1)
         end
-    end
-end)
-
--- Loop to poll for owned and equipped tools (every 2 seconds)
-task.spawn(function()
-    while ScriptRunning do
-        pcall(function()
-            local backpack = LocalPlayer:FindFirstChild("Backpack")
-            local starterGear = LocalPlayer:FindFirstChild("StarterGear") -- Check StarterGear too, as items might be there on spawn
-
-            if backpack then
-                hasClassicSword = (backpack:FindFirstChild("Classic Sword") ~= nil) or (starterGear and starterGear:FindFirstChild("Classic Sword") ~= nil)
-                hasFirebrand = (backpack:FindFirstChild("Firebrand") ~= nil) or (starterGear and starterGear:FindFirstChild("Firebrand") ~= nil)
-            else
-                hasClassicSword = (starterGear and starterGear:FindFirstChild("Classic Sword") ~= nil)
-                hasFirebrand = (starterGear and starterGear:FindFirstChild("Firebrand") ~= nil)
-            end
-        end)
-        task.wait(2)
     end
 end)
