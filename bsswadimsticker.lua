@@ -720,12 +720,14 @@ task.spawn(function()
     local lastToggleState = false
     local platform = nil
     local collectingTokensNow = false
+    local sprinklerPlaced = false
 
     while ScriptRunning do
         if Settings.AutoSlimeKill and game.PlaceId == 17579225831 then
             if not lastToggleState then
                 lastToggleState = true
                 collectingTokensNow = false
+                sprinklerPlaced = false
                 -- ClassicBaseplate Collision ausschalten
                 pcall(function()
                     local classicBaseplate = workspace.ClassicMinigame.ClassicBaseplate
@@ -786,6 +788,7 @@ task.spawn(function()
                                             bestZDiff = zDiff
                                             bestTie = horizDist
                                             TargetSlimeBlob = desc
+                                            sprinklerPlaced = false
                                         end
                                     end
                                     -- Slime: nur Blob2 angreifen
@@ -796,6 +799,7 @@ task.spawn(function()
                                             bestZDiff = zDiff
                                             bestTie = horizDist
                                             TargetSlimeBlob = desc
+                                            sprinklerPlaced = false
                                         end
                                     end
                                 end
@@ -851,6 +855,7 @@ task.spawn(function()
                             TargetSlimeBlob = CheckSlimeBlob
                             collectingTokens = false
                             collectingTokensNow = false
+                            sprinklerPlaced = false
                             break
                         end
 
@@ -881,6 +886,7 @@ task.spawn(function()
                         if nextCollect then
                             -- Markiere als besucht sofort, damit wir das Token nicht erneut targetten
                             visitedCollects[nextCollect] = tick()
+                            sprinklerPlaced = false
 
                             -- Tween direkt zur Token-Position
                             local collectPos = nextCollect.Position
@@ -993,11 +999,12 @@ task.spawn(function()
                                     AutoSlime_activeTween = nil
                                     AutoSlime_activePlatTween = nil
                                     
-                                    if firstCoord then
+                                    if firstCoord and not sprinklerPlaced then
                                         -- Place Sprinkler at the first coordinate
                                         pcall(function()
                                             local args = {[1] = {["Name"] = "Sprinkler Builder"}}
                                             game:GetService("ReplicatedStorage").Events.PlayerActivesCommand:FireServer(unpack(args))
+                                            sprinklerPlaced = true
                                         end)
                                         firstCoord = false
                                     end
@@ -1099,6 +1106,7 @@ task.spawn(function()
             if lastToggleState then
                 lastToggleState = false
                 collectingTokensNow = false
+                sprinklerPlaced = false
                 -- Cancel any active tweens/handlers
                 cancelActiveAutoSlime()
                 if platform then platform:Destroy() platform = nil end
