@@ -68,13 +68,16 @@ end
 -- Helper function to get currently equipped tool by checking backpack
 local function getEquippedToolInBackpack()
     local backpack = LocalPlayer:FindFirstChild("Backpack")
-    if not backpack then return "Farming Tool" end -- Default if no backpack found
+    if not backpack then 
+        print("getEquippedToolInBackpack: Backpack NOT found!")
+        return "Farming Tool" 
+    end
 
     local classicSwordInBackpack = backpack:FindFirstChild("Classic Sword")
     local firebrandInBackpack = backpack:FindFirstChild("Firebrand")
 
     if not classicSwordInBackpack and hasClassicSword then
-        return "Classic Sword"
+        return "Sword"
     elseif not firebrandInBackpack and hasFirebrand then
         return "Firebrand"
     else
@@ -84,36 +87,32 @@ end
 
 -- Function to equip a specific tool
 local function equipTool(toolName)
+    print("equipTool: called for '" .. toolName .. "', currently held: '" .. currentlyEquippedTool .. "'")
+
     if toolName == "Farming Tool" then
-        -- To equip the farming tool, we must unequip any currently held sword.
-        if currentlyEquippedTool == "Classic Sword" or currentlyEquippedTool == "Firebrand" then
+        if currentlyEquippedTool == "Sword" or currentlyEquippedTool == "Firebrand" then
             local swordToUnequip = currentlyEquippedTool
+            print("equipTool: Unequipping '" .. swordToUnequip .. "' to get Farming Tool")
             pcall(function()
-                local args = {
-                    [1] = {
-                        ["Name"] = swordToUnequip
-                    }
-                }
+                local args = {[1] = {["Name"] = swordToUnequip}}
                 game:GetService("ReplicatedStorage").Events.PlayerActivesCommand:FireServer(unpack(args))
-                currentlyEquippedTool = "Farming Tool"
-                print("Unequipped " .. swordToUnequip .. " to bring out Farming Tool")
             end)
+            currentlyEquippedTool = "Farming Tool"
             task.wait(0.2)
+        else
+            print("equipTool: Already holding Farming Tool (or no sword to unequip).")
         end
-    else
-        -- To equip a sword, only fire if it's not already held
+    else -- Trying to equip a sword
         if currentlyEquippedTool ~= toolName then
+            print("equipTool: Equipping '" .. toolName .. "'")
             pcall(function()
-                local args = {
-                    [1] = {
-                        ["Name"] = toolName
-                    }
-                }
+                local args = {[1] = {["Name"] = toolName}}
                 game:GetService("ReplicatedStorage").Events.PlayerActivesCommand:FireServer(unpack(args))
-                currentlyEquippedTool = toolName
-                print("Equipped: " .. toolName)
             end)
+            currentlyEquippedTool = toolName
             task.wait(0.2)
+        else
+            print("equipTool: Already holding '" .. toolName .. "'.")
         end
     end
 end
@@ -958,6 +957,7 @@ task.spawn(function()
                                 task.wait()
                             else
                                 cancelActiveAutoSlime()
+                                print("DEBUG: Calling equipTool for Farming Tool (token collection)")
                                 equipTool("Farming Tool")
                                 local tween = TweenService:Create(HumanoidRootPart, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
                                 local platTween = TweenService:Create(platform, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = CFrame.new(collectTarget - Vector3.new(0, 3, 0))})
@@ -1032,6 +1032,7 @@ task.spawn(function()
                                 
                                 if tick() >= AutoSlime_blockUntil then
                                     cancelActiveAutoSlime()
+                                    print("DEBUG: Calling equipTool for Farming Tool (farm path)")
                                     equipTool("Farming Tool")
                                     local tween = TweenService:Create(HumanoidRootPart, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
                                     local platTween = TweenService:Create(platform, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = CFrame.new(targetPos - Vector3.new(0, 3, 0))})
@@ -1061,6 +1062,7 @@ task.spawn(function()
                                     
                                     if firstCoord and not sprinklerPlaced then
                                         -- Ensure Farming Tool is equipped before placing sprinkler
+                                        print("DEBUG: Calling equipTool for Farming Tool (sprinkler placement)")
                                         equipTool("Farming Tool")
                                         task.wait(0.1) -- Small wait for equip to register
 
@@ -1134,10 +1136,11 @@ task.spawn(function()
                         if hasFirebrand then
                             toolToEquip = "Firebrand"
                         elseif hasClassicSword then
-                            toolToEquip = "Classic Sword"
+                            toolToEquip = "Sword"
                         end
 
                         if toolToEquip then
+                            print("DEBUG: Calling equipTool for " .. toolToEquip .. " (monster combat)")
                             equipTool(toolToEquip)
                             task.wait(0.1) -- Small wait for equip to register
                         end
@@ -1507,7 +1510,11 @@ task.spawn(function()
             end
 
             -- Update currently equipped tool based on backpack contents
-            currentlyEquippedTool = getEquippedToolInBackpack()
+            local detected = getEquippedToolInBackpack()
+            if detected ~= currentlyEquippedTool then
+                print("Tool Polling: Detected change! was '" .. currentlyEquippedTool .. "', now '" .. detected .. "'")
+                currentlyEquippedTool = detected
+            end
         end)
         task.wait(2)
     end
