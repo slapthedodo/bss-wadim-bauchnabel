@@ -629,7 +629,7 @@ retroTab:CreateToggle({
 })
 
 retroTab:CreateToggle({
-    Name = "KillAura Visual (50 studs)",
+    Name = "killaura",
     CurrentValue = Settings.KillAuraVisual,
     Flag = "KillAuraVisual",
     Callback = function(Value)
@@ -639,7 +639,7 @@ retroTab:CreateToggle({
 })
 
 retroTab:CreateSlider({
-    Name = "KillAura Range",
+    Name = "killaura slider",
     Range = {5, 80},
     Increment = 1,
     Suffix = "studs",
@@ -1670,8 +1670,8 @@ task.spawn(function()
                 local currentRange = Settings.KillAuraRange
                 visualPart.Size = Vector3.new(currentRange * 2, 0.1, currentRange * 2)
                 
-                -- Stay at player's X/Z but fixed Y or ground level
-                local targetY = hrp.Position.Y - 3 -- Slightly below player
+                -- Stay at player's X/Z but fixed Y 292
+                local targetY = 292
                 visualPart.CFrame = CFrame.new(hrp.Position.X, targetY, hrp.Position.Z)
 
                 -- GUI setup
@@ -1680,9 +1680,9 @@ task.spawn(function()
                     countGui = Instance.new("BillboardGui")
                     countGui.Name = "KillAuraCount"
                     countGui.Size = UDim2.new(0, 100, 0, 50)
-                    countGui.StudsOffset = Vector3.new(0, 5, 0)
+                    countGui.StudsOffset = Vector3.new(0, 2, 0)
                     countGui.AlwaysOnTop = true
-                    countGui.Adornee = hrp
+                    countGui.Adornee = visualPart
                     
                     countLabel = Instance.new("TextLabel")
                     countLabel.Size = UDim2.new(1, 0, 1, 0)
@@ -1714,7 +1714,7 @@ task.spawn(function()
                     end
                 end
 
-                countLabel.Text = "Enemies: " .. enemyCount
+                countLabel.Text = "gegnär: " .. enemyCount
                 -- Change color based on if enemies are inside
                 if enemyCount > 0 then
                     ringStroke.Color = Color3.fromRGB(255, 0, 0)
