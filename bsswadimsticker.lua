@@ -641,7 +641,7 @@ retroTab:CreateToggle({
 })
 
 retroTab:CreateSlider({
-    Name = "killaura slider",
+    Name = "killaura ranges lider",
     Range = {20, 80},
     Increment = 1,
     Suffix = "studs",
@@ -654,7 +654,7 @@ retroTab:CreateSlider({
 })
 
 retroTab:CreateSlider({
-    Name = "KillAura Trigger Count",
+    Name = "killaura trigger",
     Range = {2, 8},
     Increment = 1,
     Suffix = "enemies",
@@ -1731,12 +1731,6 @@ task.spawn(function()
 
                 local trigger = Settings.KillAuraTrigger
                 countLabel.Text = string.format("gegnär: %d/%d", enemyCount, trigger)
-
-                if enemyCount >= trigger then
-                    Settings.AutoSlimeKill = true
-                elseif enemyCount == 0 then
-                    Settings.AutoSlimeKill = false
-                end
 
                 if enemyCount > 0 then
                     ringStroke.Color = Color3.fromRGB(255, 0, 0)
