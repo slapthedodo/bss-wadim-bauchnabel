@@ -1064,8 +1064,6 @@ task.spawn(function()
                                             bestZDiff = zDiff
                                             bestTie = horizDist
                                             TargetSlimeBlob = desc
-                                            sprinklerPlaced = false
-                                            lastBloom = nil
                                         end
                                     end
                                     -- Slime: nur Blob2 angreifen
@@ -1076,8 +1074,6 @@ task.spawn(function()
                                             bestZDiff = zDiff
                                             bestTie = horizDist
                                             TargetSlimeBlob = desc
-                                            sprinklerPlaced = false
-                                            lastBloom = nil
                                         end
                                     end
                                 end
@@ -1135,8 +1131,6 @@ task.spawn(function()
                             TargetSlimeBlob = CheckSlimeBlob
                             collectingTokens = false
                             collectingTokensNow = false
-                            sprinklerPlaced = false
-                            lastBloom = nil
                             break
                         end
 
@@ -1182,9 +1176,6 @@ task.spawn(function()
                             for _, s in ipairs(siblings) do
                                 visitedCollects[s] = tick()
                             end
-                            sprinklerPlaced = false
-                            lastBloom = nil
-
                             -- Tween direkt zur Token-Position
                             local collectPos = nextCollect.Position
                             local collectTarget = Vector3.new(collectPos.X, collectPos.Y, collectPos.Z)
@@ -1275,13 +1266,13 @@ task.spawn(function()
 
                             local bloomPos = targetBloom.Position
                             local bloomHeight = 290 -- Einheitliche Höhe für diesen Bloom
+                            local speed = 69
                             
                             -- 1. Nur zum Zentrum fliegen & Sprinkler platzieren, wenn es ein NEUER Bloom ist
                             if targetBloom ~= lastBloom then
                                 lastBloom = targetBloom
                                 local targetPos = Vector3.new(bloomPos.X, bloomHeight, bloomPos.Z)
                                 local dist = (targetPos - HumanoidRootPart.Position).Magnitude
-                                local speed = 69
                                 local duration = dist / speed
                                 local targetCFrame = CFrame.new(targetPos) * upRotation
                                 
@@ -1322,7 +1313,7 @@ task.spawn(function()
                                 end
                             end
 
-                            -- 2. Im Viereck rumrennen (Jede Umdrehung)
+                            -- 2. Im Viereck rumrennen (bis Bloom weg oder Token da)
                             if tick() >= AutoSlime_blockUntil then
                                 local offset = 12
                                 local squarePoints = {
@@ -1333,12 +1324,7 @@ task.spawn(function()
                                 }
 
                                 for _, p in ipairs(squarePoints) do
-                                    -- Ensure FarmingTool is equipped during bloom square movement
-                                    if Settings.AutoToolSwitch and currentEquippedSword ~= nil and tick() - lastEquipTime > 0.5 then
-                                        EquipTool("FarmingTool")
-                                    end
-
-                                    -- Abbruch falls Slime erscheint oder Toggle aus
+                                    -- Abbruch falls Slime erscheint, Toggle aus, Bloom weg oder Token gefunden
                                     local foundSlime = false
                                     if workspace:FindFirstChild("Monsters") then
                                         for _, monsterFolder in pairs(workspace.Monsters:GetChildren()) do
@@ -1351,7 +1337,25 @@ task.spawn(function()
                                             end
                                         end
                                     end
-                                    if foundSlime or not Settings.AutoSlimeKill then break end
+
+                                    local foundToken = false
+                                    if Settings.CollectTokens and workspace:FindFirstChild("Collectibles") then
+                                        for _, c in pairs(workspace.Collectibles:GetChildren()) do
+                                            if c and c:IsA("BasePart") and c.Name == "C" and (c.Position - HumanoidRootPart.Position).Magnitude <= 400 then
+                                                foundToken = true
+                                                break
+                                            end
+                                        end
+                                    end
+
+                                    local bloomExists = targetBloom and targetBloom.Parent and targetBloom.Parent.Parent == workspace.Happenings.BrickBlooms
+
+                                    if foundSlime or foundToken or not bloomExists or not Settings.AutoSlimeKill then break end
+
+                                    -- Ensure FarmingTool is equipped during bloom square movement
+                                    if Settings.AutoToolSwitch and currentEquippedSword ~= nil and tick() - lastEquipTime > 0.5 then
+                                        EquipTool("FarmingTool")
+                                    end
 
                                     local d = (p - HumanoidRootPart.Position).Magnitude
                                     local dur = d / speed
