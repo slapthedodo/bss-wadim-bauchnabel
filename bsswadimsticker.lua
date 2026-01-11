@@ -1917,7 +1917,7 @@ task.spawn(function()
                                 if conn then conn:Disconnect() end
                                 
                                 -- Stay longer to ensure hit
-                                task.wait(0.1)
+                                task.wait(0.07)
                                 
                                 -- Mark as hit visually
                                 if activeMarkers[monster] then
