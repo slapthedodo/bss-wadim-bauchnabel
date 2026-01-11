@@ -58,6 +58,9 @@ local AutoSlime_blockUntil = 0
 -- Ensure AutoUpgrade runs only once per user activation while leaving the UI toggle on
 local AutoUpgrade_hasRun = false
 
+local KillAuraLastUsed = 0
+local KillAuraAttacking = false
+
 -- Helper to cancel any active AutoSlime tweens/connections
 local function cancelActiveAutoSlime()
     pcall(function()
@@ -903,6 +906,10 @@ task.spawn(function()
     local sprinklerPlaced = false
 
     while ScriptRunning do
+        if KillAuraAttacking then
+            task.wait(0.5)
+            continue
+        end
         if Settings.AutoSlimeKill and game.PlaceId == 17579225831 then
             if not lastToggleState then
                 lastToggleState = true
@@ -1782,6 +1789,60 @@ task.spawn(function()
                 if enemyCount >= trigger then
                     ringStroke.Color = Color3.fromRGB(255, 0, 0)
                     countLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+
+                    -- Attack Logic
+                    if tick() - KillAuraLastUsed > 3 and not KillAuraAttacking then
+                        KillAuraAttacking = true
+                        
+                        -- Collect valid targets from the currentEnemies snapshot
+                        local targets = {}
+                        for monster, _ in pairs(currentEnemies) do
+                            for _, desc in pairs(monster:GetDescendants()) do
+                                if desc:IsA("BasePart") and (desc.Name == "Torso" or desc.Name == "Blob2") then
+                                    table.insert(targets, desc)
+                                    break
+                                end
+                            end
+                        end
+
+                        if #targets > 0 then
+                            cancelActiveAutoSlime()
+                            task.wait(0.05)
+                            
+                            -- Store original position to return
+                            local originalCFrame = hrp.CFrame
+                            
+                            -- Optional: Equip Sword
+                            if Settings.AutoToolSwitch then
+                                if hasIllumina and currentEquippedSword ~= "ClassicIllumina" and tick() - lastEquipTime > 0.5 then
+                                    EquipTool("ClassicIllumina")
+                                elseif hasFirebrand and currentEquippedSword ~= "ClassicFirebrand" and tick() - lastEquipTime > 0.5 then
+                                    EquipTool("ClassicFirebrand")
+                                elseif hasClassicSword and currentEquippedSword ~= "ClassicSword" and tick() - lastEquipTime > 0.5 then
+                                    EquipTool("ClassicSword")
+                                end
+                            end
+
+                            for _, targetPart in ipairs(targets) do
+                                if targetPart and targetPart.Parent then
+                                    -- Teleport and Hit
+                                    hrp.CFrame = targetPart.CFrame
+                                    task.wait(0.02)
+                                    pcall(function()
+                                        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+                                        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
+                                    end)
+                                    task.wait(0.02)
+                                end
+                            end
+                            
+                            -- Return to original position
+                            hrp.CFrame = originalCFrame
+                            KillAuraLastUsed = tick()
+                        end
+                        
+                        KillAuraAttacking = false
+                    end
                 else
                     ringStroke.Color = Color3.fromRGB(0, 255, 0)
                     countLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
