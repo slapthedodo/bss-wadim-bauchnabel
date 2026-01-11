@@ -1800,20 +1800,11 @@ task.spawn(function()
 
                     -- EXECUTION LOGIC
                     if tick() - KillAura_lastExecution > 3 and not KillAura_isExecuting then
-                        KillAura_isExecuting = true
-                        cancelActiveAutoSlime() -- Interrupt AutoSlimeKill
-                        
-                        -- Keep track of enemies to hit
-                        local enemiesToHit = {}
-                        for monster, _ in pairs(currentEnemies) do
-                            table.insert(enemiesToHit, monster)
-                        end
-
                         local TweenService = game:GetService("TweenService")
                         local targetY = 283
                         local upRotation = CFrame.Angles(math.rad(90), 0, 0)
-                        
-                        -- Ensure platform exists (borrowing logic from AutoSlimeKill)
+
+                        -- Ensure platform exists BEFORE interrupting
                         local ka_platform = workspace:FindFirstChild("SlimeKillPlatform")
                         if not ka_platform or not ka_platform.Parent then
                             ka_platform = Instance.new("Part")
@@ -1824,12 +1815,25 @@ task.spawn(function()
                             ka_platform.Name = "SlimeKillPlatform"
                             ka_platform.Parent = workspace
                         end
+
+                        -- Secure position immediately
+                        KillAura_isExecuting = true
+                        cancelActiveAutoSlime()
                         
-                        -- Snap platform under player immediately to prevent falling
                         pcall(function()
+                            -- Lock height and snap platform
+                            hrp.CFrame = CFrame.new(hrp.Position.X, targetY, hrp.Position.Z) * upRotation
                             ka_platform.CFrame = hrp.CFrame - Vector3.new(0, 3, 0)
                             ka_platform.CanCollide = true
+                            hrp.AssemblyLinearVelocity = Vector3.zero
+                            hrp.AssemblyAngularVelocity = Vector3.zero
                         end)
+
+                        -- Keep track of enemies to hit
+                        local enemiesToHit = {}
+                        for monster, _ in pairs(currentEnemies) do
+                            table.insert(enemiesToHit, monster)
+                        end
 
                         -- Heartbeat connection for the whole session to prevent falling
                         local ka_conn = game:GetService("RunService").Heartbeat:Connect(function()
