@@ -1137,7 +1137,7 @@ task.spawn(function()
                                     firetouchinterest(nextCollect, hrp, 1)
                                 end
                             end)
-                            task.wait(0.05)
+                            task.wait(0.03)
                         else
                             -- Keine Token mehr gefunden, beende Loop
                             collectingTokens = false
