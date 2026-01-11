@@ -1015,6 +1015,7 @@ task.spawn(function()
                                             bestTie = horizDist
                                             TargetSlimeBlob = desc
                                             sprinklerPlaced = false
+                                            lastBloom = nil
                                         end
                                     end
                                     -- Slime: nur Blob2 angreifen
@@ -1026,6 +1027,7 @@ task.spawn(function()
                                             bestTie = horizDist
                                             TargetSlimeBlob = desc
                                             sprinklerPlaced = false
+                                            lastBloom = nil
                                         end
                                     end
                                 end
@@ -1084,6 +1086,7 @@ task.spawn(function()
                             collectingTokens = false
                             collectingTokensNow = false
                             sprinklerPlaced = false
+                            lastBloom = nil
                             break
                         end
 
@@ -1130,6 +1133,7 @@ task.spawn(function()
                                 visitedCollects[s] = tick()
                             end
                             sprinklerPlaced = false
+                            lastBloom = nil
 
                             -- Tween direkt zur Token-Position
                             local collectPos = nextCollect.Position
@@ -1525,6 +1529,7 @@ task.spawn(function()
                 lastToggleState = false
                 collectingTokensNow = false
                 sprinklerPlaced = false
+                lastBloom = nil
                 -- Cancel any active tweens/handlers
                 cancelActiveAutoSlime()
                 if platform then platform:Destroy() platform = nil end
