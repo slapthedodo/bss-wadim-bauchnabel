@@ -1077,9 +1077,11 @@ task.spawn(function()
                         -- Suche nächsten 'C'-Token innerhalb 400 Radius (ignoriert bereits besuchte)
                         local nextCollect = nil
                         local nextCollectDist = math.huge
+                        local siblings = {}
                         pcall(function()
                             if workspace:FindFirstChild("Collectibles") then
-                                for _, c in pairs(workspace.Collectibles:GetChildren()) do
+                                local allCollects = workspace.Collectibles:GetChildren()
+                                for _, c in pairs(allCollects) do
                                     if c and c:IsA("BasePart") and c.Name == "C" and c.Parent and not visitedCollects[c] then
                                         local d = (c.Position - HumanoidRootPart.Position).Magnitude
                                         if d <= 400 and d < nextCollectDist then
@@ -1088,12 +1090,25 @@ task.spawn(function()
                                         end
                                     end
                                 end
+                                
+                                if nextCollect then
+                                    for _, c in pairs(allCollects) do
+                                        if c and c:IsA("BasePart") and c.Name == "C" and c.Parent and not visitedCollects[c] then
+                                            -- Check if it's "ineinander" (very close)
+                                            if (c.Position - nextCollect.Position).Magnitude < 2 then
+                                                table.insert(siblings, c)
+                                            end
+                                        end
+                                    end
+                                end
                             end
                         end)
 
                         if nextCollect then
-                            -- Markiere als besucht sofort, damit wir das Token nicht erneut targetten
-                            visitedCollects[nextCollect] = tick()
+                            -- Markiere alle ineinanderliegenden Tokens als besucht
+                            for _, s in ipairs(siblings) do
+                                visitedCollects[s] = tick()
+                            end
                             sprinklerPlaced = false
 
                             -- Tween direkt zur Token-Position
@@ -1135,12 +1150,14 @@ task.spawn(function()
                                 AutoSlime_activePlatTween = nil
                             end
 
-                            -- Berühre Token mit firetouchinterest
+                            -- Berühre alle ineinanderliegenden Tokens mit firetouchinterest
                             pcall(function()
                                 local hrp = HumanoidRootPart
-                                if nextCollect and hrp and nextCollect:IsA("BasePart") and nextCollect.Parent then
-                                    firetouchinterest(nextCollect, hrp, 0)
-                                    firetouchinterest(nextCollect, hrp, 1)
+                                for _, s in ipairs(siblings) do
+                                    if s and hrp and s:IsA("BasePart") and s.Parent then
+                                        firetouchinterest(s, hrp, 0)
+                                        firetouchinterest(s, hrp, 1)
+                                    end
                                 end
                             end)
                             task.wait(0.03)
