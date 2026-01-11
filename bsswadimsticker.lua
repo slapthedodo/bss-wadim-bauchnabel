@@ -48,58 +48,6 @@ local Settings = {
     CollectTokens = true
 }
 
--- [FUNKTIONEN] Speichern und Laden
-local function SaveConfig()
-    -- Nur speichern, wenn das Skript noch läuft
-    if not ScriptRunning then return end
-    
-    local success, err = pcall(function()
-        local json = HttpService:JSONEncode(Settings)
-        writefile(FileName, json)
-    end)
-end
-
-local function LoadConfig()
-    if isfile(FileName) then
-        local content = readfile(FileName)
-        local success, result = pcall(function()
-            return HttpService:JSONDecode(content)
-        end)
-        
-        if success then
-            if result.BronzeStar ~= nil then Settings.BronzeStar = result.BronzeStar end
-            if result.DiamondStar ~= nil then Settings.DiamondStar = result.DiamondStar end
-            if result.FieldDice ~= nil then Settings.FieldDice = result.FieldDice end
-            if result.Snowflake ~= nil then Settings.Snowflake = result.Snowflake end
-            if result.SnowflakeDelay ~= nil then Settings.SnowflakeDelay = result.SnowflakeDelay end
-            if result.RedCannon ~= nil then Settings.RedCannon = result.RedCannon end
-            if result.BlueCannon ~= nil then Settings.BlueCannon = result.BlueCannon end
-            if result.YellowCannon ~= nil then Settings.YellowCannon = result.YellowCannon end
-            if result.ShowCooldowns ~= nil then Settings.ShowCooldowns = result.ShowCooldowns end
-            if result.Autoretro ~= nil then Settings.Autoretro = result.Autoretro end
-            if result.retroWalkspeed ~= nil then Settings.retroWalkspeed = result.retroWalkspeed end
-            if result.AutoClaimHive ~= nil then Settings.AutoClaimHive = result.AutoClaimHive end
-            if result.AutoHit ~= nil then Settings.AutoHit = result.AutoHit end
-            if result.AutoSlimeKill ~= nil then Settings.AutoSlimeKill = result.AutoSlimeKill end
-            if result.AutoUpgrade ~= nil then Settings.AutoUpgrade = result.AutoUpgrade end
-            if result.AutoBuyBricks ~= nil then Settings.AutoBuyBricks = result.AutoBuyBricks end
-            if result.FarmPollen ~= nil then Settings.FarmPollen = result.FarmPollen end
-            if result.AutoToolSwitch ~= nil then Settings.AutoToolSwitch = result.AutoToolSwitch end
-            if result.KillAuraVisual ~= nil then Settings.KillAuraVisual = result.KillAuraVisual end
-            if result.KillAuraRange ~= nil then Settings.KillAuraRange = result.KillAuraRange end
-            if result.KillAuraTrigger ~= nil then Settings.KillAuraTrigger = result.KillAuraTrigger end
-            if result.KillAuraCooldown ~= nil then Settings.KillAuraCooldown = result.KillAuraCooldown end
-            if result.BloomLevel ~= nil then Settings.BloomLevel = result.BloomLevel end
-            if result.CameraMaxZoomDistance ~= nil then Settings.CameraMaxZoomDistance = result.CameraMaxZoomDistance end
-            if result.MaxAxisFieldOfView ~= nil then Settings.MaxAxisFieldOfView = result.MaxAxisFieldOfView end
-            if result.CollectTokens ~= nil then Settings.CollectTokens = result.CollectTokens end
-        end
-    end
-end
-
--- Config laden
-LoadConfig()
-
 -- Global states for equipped/owned items
 local hasClassicSword = false
 local hasFirebrand = false
@@ -278,6 +226,58 @@ local function UpdateBar(barName, duration)
         bar:TweenSize(UDim2.new(0, 0, 1, 0), "Out", "Linear", duration, true)
     end
 end
+
+-- [FUNKTIONEN] Speichern und Laden
+local function SaveConfig()
+    -- Nur speichern, wenn das Skript noch läuft
+    if not ScriptRunning then return end
+    
+    local success, err = pcall(function()
+        local json = HttpService:JSONEncode(Settings)
+        writefile(FileName, json)
+    end)
+end
+
+local function LoadConfig()
+    if isfile(FileName) then
+        local content = readfile(FileName)
+        local success, result = pcall(function()
+            return HttpService:JSONDecode(content)
+        end)
+        
+        if success then
+            if result.BronzeStar ~= nil then Settings.BronzeStar = result.BronzeStar end
+            if result.DiamondStar ~= nil then Settings.DiamondStar = result.DiamondStar end
+            if result.FieldDice ~= nil then Settings.FieldDice = result.FieldDice end
+            if result.Snowflake ~= nil then Settings.Snowflake = result.Snowflake end
+            if result.SnowflakeDelay ~= nil then Settings.SnowflakeDelay = result.SnowflakeDelay end
+            if result.RedCannon ~= nil then Settings.RedCannon = result.RedCannon end
+            if result.BlueCannon ~= nil then Settings.BlueCannon = result.BlueCannon end
+            if result.YellowCannon ~= nil then Settings.YellowCannon = result.YellowCannon end
+            if result.ShowCooldowns ~= nil then Settings.ShowCooldowns = result.ShowCooldowns end
+            if result.Autoretro ~= nil then Settings.Autoretro = result.Autoretro end
+            if result.retroWalkspeed ~= nil then Settings.retroWalkspeed = result.retroWalkspeed end
+            if result.AutoClaimHive ~= nil then Settings.AutoClaimHive = result.AutoClaimHive end
+            if result.AutoHit ~= nil then Settings.AutoHit = result.AutoHit end
+            if result.AutoSlimeKill ~= nil then Settings.AutoSlimeKill = result.AutoSlimeKill end
+            if result.AutoUpgrade ~= nil then Settings.AutoUpgrade = result.AutoUpgrade end
+            if result.AutoBuyBricks ~= nil then Settings.AutoBuyBricks = result.AutoBuyBricks end
+            if result.FarmPollen ~= nil then Settings.FarmPollen = result.FarmPollen end
+            if result.AutoToolSwitch ~= nil then Settings.AutoToolSwitch = result.AutoToolSwitch end
+            if result.KillAuraVisual ~= nil then Settings.KillAuraVisual = result.KillAuraVisual end
+            if result.KillAuraRange ~= nil then Settings.KillAuraRange = result.KillAuraRange end
+            if result.KillAuraTrigger ~= nil then Settings.KillAuraTrigger = result.KillAuraTrigger end
+            if result.KillAuraCooldown ~= nil then Settings.KillAuraCooldown = result.KillAuraCooldown end
+            if result.BloomLevel ~= nil then Settings.BloomLevel = result.BloomLevel end
+            if result.CameraMaxZoomDistance ~= nil then Settings.CameraMaxZoomDistance = result.CameraMaxZoomDistance end
+            if result.MaxAxisFieldOfView ~= nil then Settings.MaxAxisFieldOfView = result.MaxAxisFieldOfView end
+            if result.CollectTokens ~= nil then Settings.CollectTokens = result.CollectTokens end
+        end
+    end
+end
+
+-- Config laden
+LoadConfig()
 
 task.spawn(function()
     local lastPrint = 0
