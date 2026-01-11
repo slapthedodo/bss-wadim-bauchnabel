@@ -696,7 +696,7 @@ retroTab:CreateSlider({
 })
 
 retroTab:CreateSlider({
-    Name = "bloom level slider",
+    Name = "max bloom level slider",
     Range = {1, 12},
     Increment = 1,
     Suffix = "lvl",
@@ -1265,10 +1265,10 @@ task.spawn(function()
                                 -- 2. Im Viereck rumrennen
                                 local offset = 12
                                 local squarePoints = {
-                                    Vector3.new(bloomPos.X + offset, targetPos.Y, bloomPos.Z + offset),
-                                    Vector3.new(bloomPos.X - offset, targetPos.Y, bloomPos.Z + offset),
-                                    Vector3.new(bloomPos.X - offset, targetPos.Y, bloomPos.Z - offset),
-                                    Vector3.new(bloomPos.X + offset, targetPos.Y, bloomPos.Z - offset)
+                                    Vector3.new(bloomPos.X + offset, 290, bloomPos.Z + offset),
+                                    Vector3.new(bloomPos.X - offset, 290, bloomPos.Z + offset),
+                                    Vector3.new(bloomPos.X - offset, 290, bloomPos.Z - offset),
+                                    Vector3.new(bloomPos.X + offset, 290, bloomPos.Z - offset)
                                 }
 
                                 for _, p in ipairs(squarePoints) do
