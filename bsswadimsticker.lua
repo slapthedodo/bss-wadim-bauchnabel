@@ -779,7 +779,7 @@ retroTab:CreateSlider({
 
 retroTab:CreateSlider({
     Name = "MaxAxisFOV",
-    Range = {30, 120},
+    Range = {60, 140},
     Increment = 1,
     Suffix = "deg",
     CurrentValue = Settings.MaxAxisFieldOfView,
