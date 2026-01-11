@@ -55,11 +55,11 @@ local AutoSlime_activePlatTween = nil
 local AutoSlime_activeConn = nil
 local AutoSlime_blockUntil = 0
 
+local KillAura_isExecuting = false
+local KillAura_lastExecution = 0
+
 -- Ensure AutoUpgrade runs only once per user activation while leaving the UI toggle on
 local AutoUpgrade_hasRun = false
-
-local KillAuraLastUsed = 0
-local KillAuraAttacking = false
 
 -- Helper to cancel any active AutoSlime tweens/connections
 local function cancelActiveAutoSlime()
@@ -906,11 +906,7 @@ task.spawn(function()
     local sprinklerPlaced = false
 
     while ScriptRunning do
-        if KillAuraAttacking then
-            task.wait(0.5)
-            continue
-        end
-        if Settings.AutoSlimeKill and game.PlaceId == 17579225831 then
+        if Settings.AutoSlimeKill and game.PlaceId == 17579225831 and not KillAura_isExecuting then
             if not lastToggleState then
                 lastToggleState = true
                 collectingTokensNow = false
@@ -1738,48 +1734,57 @@ task.spawn(function()
                     countGui.Parent = hrp
                 end
 
-                -- Counting enemies
+                -- Counting enemies (Skip update while executing to preserve markers)
                 local enemyCount = 0
                 local currentEnemies = {}
-                if workspace:FindFirstChild("Monsters") then
-                    for _, monsterFolder in pairs(workspace.Monsters:GetChildren()) do
-                        local folderName = tostring(monsterFolder.Name)
-                        if folderName:match("^Zombie") or folderName:match("^Slime") then
-                            for _, desc in pairs(monsterFolder:GetDescendants()) do
-                                if desc:IsA("BasePart") and (desc.Name == "Torso" or desc.Name == "Blob2") then
-                                    local dist = (desc.Position - hrp.Position).Magnitude
-                                    if dist <= currentRange then
-                                        enemyCount = enemyCount + 1
-                                        local monster = monsterFolder
-                                        currentEnemies[monster] = true
-                                        
-                                        if not activeMarkers[monster] then
-                                            pcall(function()
-                                                local h = Instance.new("Highlight")
-                                                h.Name = "KillAuraHighlight"
-                                                h.FillColor = Color3.fromRGB(255, 0, 0)
-                                                h.OutlineColor = Color3.fromRGB(255, 255, 255)
-                                                h.FillTransparency = 0.4
-                                                h.OutlineTransparency = 0
-                                                h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                                                h.Adornee = desc
-                                                h.Parent = monster
-                                                activeMarkers[monster] = h
-                                            end)
+                if not KillAura_isExecuting then
+                    if workspace:FindFirstChild("Monsters") then
+                        for _, monsterFolder in pairs(workspace.Monsters:GetChildren()) do
+                            local folderName = tostring(monsterFolder.Name)
+                            if folderName:match("^Zombie") or folderName:match("^Slime") then
+                                for _, desc in pairs(monsterFolder:GetDescendants()) do
+                                    if desc:IsA("BasePart") and (desc.Name == "Torso" or desc.Name == "Blob2") then
+                                        local dist = (desc.Position - hrp.Position).Magnitude
+                                        if dist <= currentRange then
+                                            enemyCount = enemyCount + 1
+                                            local monster = monsterFolder
+                                            currentEnemies[monster] = true
+                                            
+                                            if not activeMarkers[monster] then
+                                                pcall(function()
+                                                    local h = Instance.new("Highlight")
+                                                    h.Name = "KillAuraHighlight"
+                                                    h.FillColor = Color3.fromRGB(255, 0, 0)
+                                                    h.OutlineColor = Color3.fromRGB(255, 255, 255)
+                                                    h.FillTransparency = 0.4
+                                                    h.OutlineTransparency = 0
+                                                    h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                                                    h.Adornee = desc
+                                                    h.Parent = monster
+                                                    activeMarkers[monster] = h
+                                                end)
+                                            end
+                                            break
                                         end
-                                        break
                                     end
                                 end
                             end
                         end
                     end
-                end
 
-                -- Remove markers for enemies no longer in range
-                for monster, marker in pairs(activeMarkers) do
-                    if not currentEnemies[monster] or not monster.Parent then
-                        if marker then pcall(function() marker:Destroy() end) end
-                        activeMarkers[monster] = nil
+                    -- Remove markers for enemies no longer in range
+                    for monster, marker in pairs(activeMarkers) do
+                        if not currentEnemies[monster] or not monster.Parent then
+                            if marker then pcall(function() marker:Destroy() end) end
+                            activeMarkers[monster] = nil
+                        end
+                    end
+                else
+                    -- While executing, just count remaining marked enemies for the UI
+                    for monster, marker in pairs(activeMarkers) do
+                        if marker and monster.Parent then
+                            enemyCount = enemyCount + 1
+                        end
                     end
                 end
 
@@ -1790,58 +1795,95 @@ task.spawn(function()
                     ringStroke.Color = Color3.fromRGB(255, 0, 0)
                     countLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
 
-                    -- Attack Logic
-                    if tick() - KillAuraLastUsed > 3 and not KillAuraAttacking then
-                        KillAuraAttacking = true
+                    -- EXECUTION LOGIC
+                    if tick() - KillAura_lastExecution > 3 and not KillAura_isExecuting then
+                        KillAura_isExecuting = true
+                        cancelActiveAutoSlime() -- Interrupt AutoSlimeKill
                         
-                        -- Collect valid targets from the currentEnemies snapshot
-                        local targets = {}
+                        -- Keep track of enemies to hit
+                        local enemiesToHit = {}
                         for monster, _ in pairs(currentEnemies) do
-                            for _, desc in pairs(monster:GetDescendants()) do
-                                if desc:IsA("BasePart") and (desc.Name == "Torso" or desc.Name == "Blob2") then
-                                    table.insert(targets, desc)
-                                    break
-                                end
-                            end
+                            table.insert(enemiesToHit, monster)
                         end
 
-                        if #targets > 0 then
-                            cancelActiveAutoSlime()
-                            task.wait(0.05)
-                            
-                            -- Store original position to return
-                            local originalCFrame = hrp.CFrame
-                            
-                            -- Optional: Equip Sword
-                            if Settings.AutoToolSwitch then
-                                if hasIllumina and currentEquippedSword ~= "ClassicIllumina" and tick() - lastEquipTime > 0.5 then
-                                    EquipTool("ClassicIllumina")
-                                elseif hasFirebrand and currentEquippedSword ~= "ClassicFirebrand" and tick() - lastEquipTime > 0.5 then
-                                    EquipTool("ClassicFirebrand")
-                                elseif hasClassicSword and currentEquippedSword ~= "ClassicSword" and tick() - lastEquipTime > 0.5 then
-                                    EquipTool("ClassicSword")
-                                end
-                            end
+                        local TweenService = game:GetService("TweenService")
+                        local targetY = 283
+                        local upRotation = CFrame.Angles(math.rad(90), 0, 0)
+                        
+                        -- Ensure platform exists (borrowing logic from AutoSlimeKill)
+                        local ka_platform = workspace:FindFirstChild("SlimeKillPlatform")
+                        if not ka_platform then
+                            ka_platform = Instance.new("Part")
+                            ka_platform.Size = Vector3.new(100, 1, 100)
+                            ka_platform.Anchored = true
+                            ka_platform.Transparency = 1
+                            ka_platform.CanCollide = true
+                            ka_platform.Name = "SlimeKillPlatform"
+                            ka_platform.Parent = workspace
+                        end
 
-                            for _, targetPart in ipairs(targets) do
-                                if targetPart and targetPart.Parent then
-                                    -- Teleport and Hit
-                                    hrp.CFrame = targetPart.CFrame
-                                    task.wait(0.02)
-                                    pcall(function()
-                                        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
-                                        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
-                                    end)
-                                    task.wait(0.02)
+                        -- Save original position to return if needed (optional, but good for flow)
+                        -- Actually user didn't ask to return, just to hit them.
+                        
+                        for _, monster in ipairs(enemiesToHit) do
+                            if not ScriptRunning or not Settings.KillAuraVisual then break end
+                            
+                            local targetPart = nil
+                            pcall(function()
+                                targetPart = monster:FindFirstChild("Torso") or monster:FindFirstChild("Blob2") or monster:FindFirstChildWhichIsA("BasePart")
+                            end)
+
+                            if targetPart then
+                                local targetPos = targetPart.Position
+                                local adjustedTarget = Vector3.new(targetPos.X, targetY, targetPos.Z)
+                                local dist = (adjustedTarget - hrp.Position).Magnitude
+                                local speed = 150 -- Faster for KillAura
+                                local duration = math.max(0.1, dist / speed)
+
+                                -- Equip sword if tool switch is on
+                                if Settings.AutoToolSwitch then
+                                    if hasIllumina and currentEquippedSword ~= "ClassicIllumina" then
+                                        EquipTool("ClassicIllumina")
+                                    elseif hasFirebrand and currentEquippedSword ~= "ClassicFirebrand" then
+                                        EquipTool("ClassicFirebrand")
+                                    elseif hasClassicSword and currentEquippedSword ~= "ClassicSword" then
+                                        EquipTool("ClassicSword")
+                                    end
+                                end
+
+                                local tween = TweenService:Create(hrp, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = CFrame.new(adjustedTarget) * upRotation})
+                                local platTween = TweenService:Create(ka_platform, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = CFrame.new(adjustedTarget - Vector3.new(0, 3, 0))})
+                                
+                                tween:Play()
+                                platTween:Play()
+                                
+                                -- Wait for tween to finish
+                                local completed = false
+                                local conn = tween.Completed:Connect(function() completed = true end)
+                                
+                                -- Small heartbeat loop to keep physics disabled
+                                while not completed and ScriptRunning do
+                                    hrp.AssemblyLinearVelocity = Vector3.zero
+                                    hrp.AssemblyAngularVelocity = Vector3.zero
+                                    ka_platform.AssemblyLinearVelocity = Vector3.zero
+                                    ka_platform.AssemblyAngularVelocity = Vector3.zero
+                                    task.wait()
+                                end
+                                if conn then conn:Disconnect() end
+                                
+                                -- Stay a tiny bit to ensure hit
+                                task.wait(0.1)
+                                
+                                -- Remove highlight after hit (visual confirmation)
+                                if activeMarkers[monster] then
+                                    pcall(function() activeMarkers[monster]:Destroy() end)
+                                    activeMarkers[monster] = nil
                                 end
                             end
-                            
-                            -- Return to original position
-                            hrp.CFrame = originalCFrame
-                            KillAuraLastUsed = tick()
                         end
                         
-                        KillAuraAttacking = false
+                        KillAura_lastExecution = tick()
+                        KillAura_isExecuting = false
                     end
                 else
                     ringStroke.Color = Color3.fromRGB(0, 255, 0)
