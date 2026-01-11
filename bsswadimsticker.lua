@@ -924,8 +924,6 @@ task.spawn(function()
                 
                 -- 10 Sekunden warten beim ersten Einschalten
                 task.wait(10)
-            end
-
             elseif LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character:FindFirstChild("Humanoid") then
                 local HumanoidRootPart = LocalPlayer.Character.HumanoidRootPart
                 local Humanoid = LocalPlayer.Character.Humanoid
