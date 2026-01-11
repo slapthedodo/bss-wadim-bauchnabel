@@ -909,7 +909,7 @@ task.spawn(function()
         if Settings.AutoSlimeKill and game.PlaceId == 17579225831 then
             if KillAura_isExecuting then
                 task.wait()
-                -- Skip logic but don't reset lastToggleState
+                -- Wait for killaura to finish before doing any slime kill logic
             elseif not lastToggleState then
                 lastToggleState = true
                 collectingTokensNow = false
@@ -926,7 +926,7 @@ task.spawn(function()
                 task.wait(10)
             end
 
-            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            elseif LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character:FindFirstChild("Humanoid") then
                 local HumanoidRootPart = LocalPlayer.Character.HumanoidRootPart
                 local Humanoid = LocalPlayer.Character.Humanoid
 
