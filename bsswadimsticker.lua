@@ -1812,7 +1812,7 @@ task.spawn(function()
                         
                         -- Ensure platform exists (borrowing logic from AutoSlimeKill)
                         local ka_platform = workspace:FindFirstChild("SlimeKillPlatform")
-                        if not ka_platform then
+                        if not ka_platform or not ka_platform.Parent then
                             ka_platform = Instance.new("Part")
                             ka_platform.Size = Vector3.new(100, 1, 100)
                             ka_platform.Anchored = true
@@ -1822,9 +1822,23 @@ task.spawn(function()
                             ka_platform.Parent = workspace
                         end
 
-                        -- Save original position to return if needed (optional, but good for flow)
-                        -- Actually user didn't ask to return, just to hit them.
-                        
+                        -- Heartbeat connection for the whole session to prevent falling
+                        local ka_conn = game:GetService("RunService").Heartbeat:Connect(function()
+                            if hrp and hrp.Parent then
+                                hrp.AssemblyLinearVelocity = Vector3.zero
+                                hrp.AssemblyAngularVelocity = Vector3.zero
+                            end
+                            if ka_platform and ka_platform.Parent then
+                                ka_platform.AssemblyLinearVelocity = Vector3.zero
+                                ka_platform.AssemblyAngularVelocity = Vector3.zero
+                            end
+                            pcall(function()
+                                if character:FindFirstChildOfClass("Humanoid") then
+                                    character:FindFirstChildOfClass("Humanoid").PlatformStand = true
+                                end
+                            end)
+                        end)
+
                         for _, monster in ipairs(enemiesToHit) do
                             if not ScriptRunning or not Settings.KillAuraVisual then break end
                             
@@ -1837,8 +1851,8 @@ task.spawn(function()
                                 local targetPos = targetPart.Position
                                 local adjustedTarget = Vector3.new(targetPos.X, targetY, targetPos.Z)
                                 local dist = (adjustedTarget - hrp.Position).Magnitude
-                                local speed = 70 -- Faster for KillAura
-                                local duration = math.max(0.1, dist / speed)
+                                local speed = 69
+                                local duration = math.max(0.05, dist / speed)
 
                                 -- Equip sword if tool switch is on
                                 if Settings.AutoToolSwitch then
@@ -1882,6 +1896,7 @@ task.spawn(function()
                             end
                         end
                         
+                        if ka_conn then ka_conn:Disconnect() end
                         KillAura_lastExecution = tick()
                         KillAura_isExecuting = false
                     end
