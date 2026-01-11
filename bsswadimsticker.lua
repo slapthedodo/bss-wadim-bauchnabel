@@ -193,7 +193,8 @@ end
 
 local Bars = {
     Stars = CreateCooldownBar("Stars & Dice", Color3.fromRGB(255, 200, 0)),
-    Snowflake = CreateCooldownBar("Snowflake", Color3.fromRGB(0, 255, 255))
+    Snowflake = CreateCooldownBar("Snowflake", Color3.fromRGB(0, 255, 255)),
+    KillAura = CreateCooldownBar("KillAura", Color3.fromRGB(255, 0, 0))
 }
 
 local function UpdateBar(barName, duration)
@@ -208,6 +209,8 @@ local function UpdateBar(barName, duration)
         barFrame.Visible = (Settings.BronzeStar or Settings.DiamondStar or Settings.FieldDice)
     elseif barName == "Snowflake" then
         barFrame.Visible = Settings.Snowflake
+    elseif barName == "KillAura" then
+        barFrame.Visible = Settings.KillAuraVisual
     end
 
     if not barFrame.Visible then return end
@@ -1956,6 +1959,7 @@ task.spawn(function()
                         if ka_conn then ka_conn:Disconnect() end
                         KillAura_lastExecution = tick()
                         KillAura_isExecuting = false
+                        UpdateBar("KillAura", Settings.KillAuraCooldown)
                     end
                 else
                     ringStroke.Color = Color3.fromRGB(0, 255, 0)
