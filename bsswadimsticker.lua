@@ -1897,7 +1897,7 @@ task.spawn(function()
                                 local currentHRPPos = hrp.Position
                                 local dist = (adjustedTarget - currentHRPPos).Magnitude
                                 local speed = 120
-                                local duration = math.max(0.2, dist / speed)
+                                local duration = math.max(0.1, dist / speed)
 
                                 print("Killaura: Gehe zu Gegner " .. i .. "/" .. #enemiesToHit .. " (Distanz: " .. math.floor(dist) .. ")")
 
