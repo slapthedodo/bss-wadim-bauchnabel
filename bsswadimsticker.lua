@@ -1646,8 +1646,10 @@ task.spawn(function()
     local countGui = nil
     local countLabel = nil
     local activeMarkers = {}
+    local visualConn = nil
 
     local function cleanup()
+        if visualConn then visualConn:Disconnect() visualConn = nil end
         if visualPart then visualPart:Destroy() visualPart = nil end
         if countGui then countGui:Destroy() countGui = nil end
         for monster, marker in pairs(activeMarkers) do
@@ -1699,9 +1701,13 @@ task.spawn(function()
                 local currentRange = Settings.KillAuraRange
                 visualPart.Size = Vector3.new(currentRange * 2, 0.1, currentRange * 2)
                 
-                -- Stay at player's X/Z but fixed Y 292
-                local targetY = 292
-                visualPart.CFrame = CFrame.new(hrp.Position.X, targetY, hrp.Position.Z)
+                if not visualConn then
+                    visualConn = game:GetService("RunService").Heartbeat:Connect(function()
+                        if visualPart and visualPart.Parent and hrp and hrp.Parent then
+                            visualPart.CFrame = CFrame.new(hrp.Position.X, 292, hrp.Position.Z)
+                        end
+                    end)
+                end
 
                 -- GUI setup
                 if not countGui or countGui.Parent ~= hrp then
@@ -1743,14 +1749,18 @@ task.spawn(function()
                                         if not activeMarkers[monster] then
                                             pcall(function()
                                                 local h = Instance.new("Highlight")
+                                                h.Name = "KillAuraHighlight"
                                                 h.FillColor = Color3.fromRGB(255, 0, 0)
                                                 h.OutlineColor = Color3.fromRGB(255, 255, 255)
-                                                h.FillTransparency = 0.5
-                                                h.Adornee = monster
+                                                h.FillTransparency = 0.4
+                                                h.OutlineTransparency = 0
+                                                h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                                                h.Adornee = desc
                                                 h.Parent = monster
                                                 activeMarkers[monster] = h
                                             end)
                                         end
+                                        break
                                     end
                                 end
                             end
