@@ -1077,12 +1077,8 @@ task.spawn(function()
                         -- Suche nächsten 'C'-Token innerhalb 400 Radius (ignoriert bereits besuchte)
                         local nextCollect = nil
                         local nextCollectDist = math.huge
-                        local cluster = {}
-                        local groupingRadius = 10 -- Radius zum Gruppieren von Tokens
-
                         pcall(function()
                             if workspace:FindFirstChild("Collectibles") then
-                                -- Zuerst das nächste Token finden
                                 for _, c in pairs(workspace.Collectibles:GetChildren()) do
                                     if c and c:IsA("BasePart") and c.Name == "C" and c.Parent and not visitedCollects[c] then
                                         local d = (c.Position - HumanoidRootPart.Position).Magnitude
@@ -1092,53 +1088,17 @@ task.spawn(function()
                                         end
                                     end
                                 end
-
-                                -- Wenn ein Token gefunden wurde, suche nach weiteren in der Nähe für Cluster-Bildung (Chained grouping)
-                                if nextCollect then
-                                    local allC = {}
-                                    for _, c in pairs(workspace.Collectibles:GetChildren()) do
-                                        if c and c:IsA("BasePart") and c.Name == "C" and c.Parent and not visitedCollects[c] then
-                                            table.insert(allC, c)
-                                        end
-                                    end
-                                    
-                                    local clusterSet = {[nextCollect] = true}
-                                    table.insert(cluster, nextCollect)
-                                    
-                                    local addedAny = true
-                                    while addedAny do
-                                        addedAny = false
-                                        for i = #allC, 1, -1 do
-                                            local c = allC[i]
-                                            if not clusterSet[c] then
-                                                for _, existing in ipairs(cluster) do
-                                                    if (c.Position - existing.Position).Magnitude <= groupingRadius then
-                                                        clusterSet[c] = true
-                                                        table.insert(cluster, c)
-                                                        addedAny = true
-                                                        break
-                                                    end
-                                                end
-                                            end
-                                        end
-                                    end
-                                end
                             end
                         end)
 
-                        if nextCollect and #cluster > 0 then
-                            -- Berechne die Durchschnittsposition des Clusters
-                            local avgPos = Vector3.zero
-                            for _, c in ipairs(cluster) do
-                                avgPos = avgPos + c.Position
-                                visitedCollects[c] = tick() -- Markiere alle im Cluster als besucht
-                            end
-                            avgPos = avgPos / #cluster
-                            
+                        if nextCollect then
+                            -- Markiere als besucht sofort, damit wir das Token nicht erneut targetten
+                            visitedCollects[nextCollect] = tick()
                             sprinklerPlaced = false
 
-                            -- Tween zur Durchschnittsposition
-                            local collectTarget = avgPos
+                            -- Tween direkt zur Token-Position
+                            local collectPos = nextCollect.Position
+                            local collectTarget = Vector3.new(collectPos.X, collectPos.Y, collectPos.Z)
                             local dist = (collectTarget - HumanoidRootPart.Position).Magnitude
                             local speed = 69
                             local duration = math.max(0.05, dist / speed)
@@ -1175,14 +1135,12 @@ task.spawn(function()
                                 AutoSlime_activePlatTween = nil
                             end
 
-                            -- Berühre alle Tokens im Cluster mit firetouchinterest
+                            -- Berühre Token mit firetouchinterest
                             pcall(function()
                                 local hrp = HumanoidRootPart
-                                for _, c in ipairs(cluster) do
-                                    if c and hrp and c:IsA("BasePart") and c.Parent then
-                                        firetouchinterest(c, hrp, 0)
-                                        firetouchinterest(c, hrp, 1)
-                                    end
+                                if nextCollect and hrp and nextCollect:IsA("BasePart") and nextCollect.Parent then
+                                    firetouchinterest(nextCollect, hrp, 0)
+                                    firetouchinterest(nextCollect, hrp, 1)
                                 end
                             end)
                             task.wait(0.03)
