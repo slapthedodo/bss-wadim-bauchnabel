@@ -45,7 +45,8 @@ local Settings = {
     BloomLevel = 8,
     CameraMaxZoomDistance = 150,
     MaxAxisFieldOfView = 90,
-    CollectTokens = true
+    CollectTokens = true,
+    AutoDeleteNinjas = false
 }
 
 -- Global states for equipped/owned items
@@ -272,6 +273,7 @@ local function LoadConfig()
             if result.CameraMaxZoomDistance ~= nil then Settings.CameraMaxZoomDistance = result.CameraMaxZoomDistance end
             if result.MaxAxisFieldOfView ~= nil then Settings.MaxAxisFieldOfView = result.MaxAxisFieldOfView end
             if result.CollectTokens ~= nil then Settings.CollectTokens = result.CollectTokens end
+            if result.AutoDeleteNinjas ~= nil then Settings.AutoDeleteNinjas = result.AutoDeleteNinjas end
         end
     end
 end
@@ -653,6 +655,16 @@ retroTab:CreateToggle({
 })
 
 retroTab:CreateToggle({
+    Name = "auto delete ninjas",
+    CurrentValue = Settings.AutoDeleteNinjas,
+    Flag = "AutoDeleteNinjas",
+    Callback = function(Value)
+        Settings.AutoDeleteNinjas = Value
+        SaveConfig()
+    end,
+})
+
+retroTab:CreateToggle({
     Name = "auto tool switch",
     CurrentValue = Settings.AutoToolSwitch,
     Flag = "AutoToolSwitch",
@@ -989,6 +1001,33 @@ end)
 
 task.spawn(function()
     local TweenService = game:GetService("TweenService")
+
+    local function findTargetBloom()
+        local target = nil
+        pcall(function()
+            if workspace:FindFirstChild("Happenings") and workspace.Happenings:FindFirstChild("BrickBlooms") then
+                for _, bloom in pairs(workspace.Happenings.BrickBlooms:GetChildren()) do
+                    local centerPart = bloom:FindFirstChild("CenterPart")
+                    if centerPart then
+                        local attachment = centerPart:FindFirstChild("Attachment")
+                        local gui = attachment and attachment:FindFirstChild("Gui")
+                        local nameRow = gui and gui:FindFirstChild("NameRow")
+                        local label = nameRow and nameRow:FindFirstChild("TextLabel")
+                        if label and label.Text then
+                            local text = label.Text
+                            local level = tonumber(text:match("Lvl%s+(%d+)"))
+                            if level and level <= Settings.BloomLevel then
+                                target = centerPart
+                                break
+                            end
+                        end
+                    end
+                end
+            end
+        end)
+        return target
+    end
+
     local lastToggleState = false
     local platform = nil
     local collectingTokensNow = false
@@ -1087,84 +1126,90 @@ task.spawn(function()
                 end
 
                 -- Wenn kein Slime gefunden: Sammle Collectibles 'C' ohne zurückzufliegen
-                if not TargetSlimeBlob and not collectingTokensNow and Settings.CollectTokens then
+                if not TargetSlimeBlob and not collectingTokensNow then
                     collectingTokensNow = true
-                    local collectingTokens = true
-                    local visitedCollects = {}
-                    while collectingTokens and Settings.AutoSlimeKill and Settings.CollectTokens and game.PlaceId == 17579225831 do
-                        -- Prüfe nochmal auf neue Slimes (Priorität)
-                        local CheckSlimeBlob = nil
-                        local checkZDiff = math.huge
-                        local checkTie = math.huge
-                        if workspace:FindFirstChild("Monsters") then
-                                for _, monsterFolder in pairs(workspace.Monsters:GetChildren()) do
-                                    local folderName = tostring(monsterFolder.Name)
-                                    -- Match any Zombie or Slime regardless of level
-                                    local isSlime = folderName:match("^Slime")
-                                    local slimeLvl = isSlime and tonumber(folderName:match("Lvl%s+(%d+)"))
-                                    if (folderName:match("^Zombie") or isSlime) and (not slimeLvl or slimeLvl < 22) then
-                                        -- Suche direkt alle Nachkommen im Folder
-                                        for _, desc in pairs(monsterFolder:GetDescendants()) do
-                                            if desc:IsA("BasePart") then
-                                                if folderName:match("^Zombie") and desc.Name == "Torso" then
-                                                    local zDiff = math.abs(desc.Position.Z - 230)
-                                                    local horizDist = (Vector2.new(desc.Position.X - HumanoidRootPart.Position.X, desc.Position.Z - 230)).Magnitude
-                                                    if zDiff < checkZDiff or (zDiff == checkZDiff and horizDist < checkTie) then
-                                                        checkZDiff = zDiff
-                                                        checkTie = horizDist
-                                                        CheckSlimeBlob = desc
+                    
+                    if Settings.CollectTokens then
+                        local collectingTokens = true
+                        local visitedCollects = {}
+                        while collectingTokens and Settings.AutoSlimeKill and Settings.CollectTokens and game.PlaceId == 17579225831 do
+                            -- Prüfe nochmal auf neue Slimes (Priorität)
+                            local CheckSlimeBlob = nil
+                            local checkZDiff = math.huge
+                            local checkTie = math.huge
+                            if workspace:FindFirstChild("Monsters") then
+                                    for _, monsterFolder in pairs(workspace.Monsters:GetChildren()) do
+                                        local folderName = tostring(monsterFolder.Name)
+                                        -- Match any Zombie or Slime regardless of level
+                                        local isSlime = folderName:match("^Slime")
+                                        local slimeLvl = isSlime and tonumber(folderName:match("Lvl%s+(%d+)"))
+                                        if (folderName:match("^Zombie") or isSlime) and (not slimeLvl or slimeLvl < 22) then
+                                            -- Suche direkt alle Nachkommen im Folder
+                                            for _, desc in pairs(monsterFolder:GetDescendants()) do
+                                                if desc:IsA("BasePart") then
+                                                    if folderName:match("^Zombie") and desc.Name == "Torso" then
+                                                        local zDiff = math.abs(desc.Position.Z - 230)
+                                                        local horizDist = (Vector2.new(desc.Position.X - HumanoidRootPart.Position.X, desc.Position.Z - 230)).Magnitude
+                                                        if zDiff < checkZDiff or (zDiff == checkZDiff and horizDist < checkTie) then
+                                                            checkZDiff = zDiff
+                                                            checkTie = horizDist
+                                                            CheckSlimeBlob = desc
+                                                        end
                                                     end
-                                                end
-                                                if folderName:match("^Slime") and desc.Name == "Blob2" then
-                                                    local zDiff = math.abs(desc.Position.Z - 230)
-                                                    local horizDist = (Vector2.new(desc.Position.X - HumanoidRootPart.Position.X, desc.Position.Z - 230)).Magnitude
-                                                    if zDiff < checkZDiff or (zDiff == checkZDiff and horizDist < checkTie) then
-                                                        checkZDiff = zDiff
-                                                        checkTie = horizDist
-                                                        CheckSlimeBlob = desc
+                                                    if folderName:match("^Slime") and desc.Name == "Blob2" then
+                                                        local zDiff = math.abs(desc.Position.Z - 230)
+                                                        local horizDist = (Vector2.new(desc.Position.X - HumanoidRootPart.Position.X, desc.Position.Z - 230)).Magnitude
+                                                        if zDiff < checkZDiff or (zDiff == checkZDiff and horizDist < checkTie) then
+                                                            checkZDiff = zDiff
+                                                            checkTie = horizDist
+                                                            CheckSlimeBlob = desc
+                                                        end
                                                     end
                                                 end
                                             end
                                         end
                                     end
-                                end
-                        end
-                        
-                        if CheckSlimeBlob or not Settings.CollectTokens then
-                            -- Slime gefunden oder Toggle aus, raus aus Token-Loop
-                            TargetSlimeBlob = CheckSlimeBlob
-                            collectingTokens = false
-                            collectingTokensNow = false
-                            sprinklerPlaced = false
-                            lastBloom = nil
-                            break
-                        end
-
-                        -- Bereinige besuchte Tokens (entferne verschwundene oder alte Einträge)
-                        for k, v in pairs(visitedCollects) do
-                            if (not k.Parent) or ((tick() - v) > 10) then
-                                visitedCollects[k] = nil
                             end
-                        end
+                            
+                            if CheckSlimeBlob or not Settings.CollectTokens then
+                                -- Slime gefunden oder Toggle aus, raus aus Token-Loop
+                                TargetSlimeBlob = CheckSlimeBlob
+                                collectingTokens = false
+                                sprinklerPlaced = false
+                                lastBloom = nil
+                                break
+                            end
 
-                        -- Suche nächsten 'C'-Token innerhalb 400 Radius (ignoriert bereits besuchte)
-                        local nextCollect = nil
-                        local nextCollectDist = math.huge
-                        local siblings = {}
-                        pcall(function()
-                            if workspace:FindFirstChild("Collectibles") then
-                                local allCollects = workspace.Collectibles:GetChildren()
-                                for _, c in pairs(allCollects) do
-                                    if c and c:IsA("BasePart") and c.Name == "C" and c.Parent and not visitedCollects[c] then
-                                        local d = (c.Position - HumanoidRootPart.Position).Magnitude
-                                        if d <= 400 and d < nextCollectDist then
-                                            nextCollectDist = d
-                                            nextCollect = c
+                            -- Bereinige besuchte Tokens (entferne verschwundene oder alte Einträge)
+                            for k, v in pairs(visitedCollects) do
+                                if (not k.Parent) or ((tick() - v) > 10) then
+                                    visitedCollects[k] = nil
+                                end
+                            end
+
+                            -- Suche nächsten 'C'-Token innerhalb 400 Radius (ignoriert bereits besuchte)
+                            -- Wenn Bloom da ist, nur 40er Range
+                            local nextCollect = nil
+                            local nextCollectDist = math.huge
+                            local siblings = {}
+                            
+                            local bloomNearby = findTargetBloom()
+                            local rangeLimit = bloomNearby and 40 or 400
+
+                            pcall(function()
+                                if workspace:FindFirstChild("Collectibles") then
+                                    local allCollects = workspace.Collectibles:GetChildren()
+                                    for _, c in pairs(allCollects) do
+                                        if c and c:IsA("BasePart") and c.Name == "C" and c.Parent and not visitedCollects[c] then
+                                            local d = (c.Position - HumanoidRootPart.Position).Magnitude
+                                            if d <= rangeLimit and d < nextCollectDist then
+                                                nextCollectDist = d
+                                                nextCollect = c
+                                            end
                                         end
                                     end
-                                end
-                                
-                                if nextCollect then
+                                    
+                                    if nextCollect then
                                     for _, c in pairs(allCollects) do
                                         if c and c:IsA("BasePart") and c.Name == "C" and c.Parent and not visitedCollects[c] then
                                             -- Check if it's "ineinander" (very close)
@@ -1238,34 +1283,13 @@ task.spawn(function()
                         else
                             -- Keine Token mehr gefunden, beende Loop
                             collectingTokens = false
-                            collectingTokensNow = false
                         end
                     end
 
                     -- Nach Token-Sammeln: Suche nach Brick Blooms falls keine Slimes da sind
                     local targetBloom = nil
                     if not TargetSlimeBlob then
-                        pcall(function()
-                            if workspace:FindFirstChild("Happenings") and workspace.Happenings:FindFirstChild("BrickBlooms") then
-                                for _, bloom in pairs(workspace.Happenings.BrickBlooms:GetChildren()) do
-                                    local centerPart = bloom:FindFirstChild("CenterPart")
-                                    if centerPart then
-                                        local attachment = centerPart:FindFirstChild("Attachment")
-                                        local gui = attachment and attachment:FindFirstChild("Gui")
-                                        local nameRow = gui and gui:FindFirstChild("NameRow")
-                                        local label = nameRow and nameRow:FindFirstChild("TextLabel")
-                                        if label and label.Text then
-                                            local text = label.Text
-                                            local level = tonumber(text:match("Lvl%s+(%d+)"))
-                                            if level and level <= Settings.BloomLevel then
-                                                targetBloom = centerPart
-                                                break
-                                            end
-                                        end
-                                    end
-                                end
-                            end
-                        end)
+                        targetBloom = findTargetBloom()
 
                         if targetBloom and targetBloom.Parent then
                             -- Bloom gefunden!
@@ -1365,7 +1389,22 @@ task.spawn(function()
                                             end
                                         end)
 
-                                        if foundSlime or not Settings.AutoSlimeKill or not bloomExists then break end
+                                        local foundTokenNearby = false
+                                        if Settings.CollectTokens then
+                                            pcall(function()
+                                                if workspace:FindFirstChild("Collectibles") then
+                                                    for _, c in pairs(workspace.Collectibles:GetChildren()) do
+                                                        if c and c:IsA("BasePart") and c.Name == "C" and c.Parent then
+                                                            if (c.Position - HumanoidRootPart.Position).Magnitude <= 40 then
+                                                                foundTokenNearby = true
+                                                                break
+                                                            end
+                                                        end
+                                                    end
+                                                end
+                                            end)
+                                        end
+                                        if foundSlime or not Settings.AutoSlimeKill or not bloomExists or foundTokenNearby then break end
 
                                         local d = (p - HumanoidRootPart.Position).Magnitude
                                         local dur = d / speed
@@ -1526,6 +1565,7 @@ task.spawn(function()
                             end
                         end
                     end
+                    collectingTokensNow = false
                 else
                     -- Ziel-Slime gefunden: tween zum Slime (Y fixed to targetY)
                     local targetPos = TargetSlimeBlob.Position
@@ -2241,5 +2281,27 @@ task.spawn(function()
             end
         end)
         task.wait(1)
+    end
+end)
+
+-- Loop 11: Auto Delete Ninjas
+task.spawn(function()
+    while ScriptRunning do
+        if Settings.AutoDeleteNinjas and game.PlaceId == 17579225831 then
+            pcall(function()
+                local minigame = workspace:FindFirstChild("ClassicMinigame")
+                if minigame then
+                    local backWall = minigame:FindFirstChild("ClassicBackWall")
+                    if backWall then
+                        backWall:Destroy()
+                    end
+                    local spawnerShade = minigame:FindFirstChild("ClassicSpawnerShade")
+                    if spawnerShade then
+                        spawnerShade:Destroy()
+                    end
+                end
+            end)
+        end
+        task.wait(5) -- Efficient check every 5 seconds
     end
 end)
