@@ -954,7 +954,7 @@ task.spawn(function()
 
                 -- Nochmals prüfen, ob Toggle noch an ist und wir noch in retro sind
                 if Settings.AutoClaimHive and game.PlaceId == 17579225831 then
-                    local claimValues = {9, 9}
+                    local claimValues = {7, 8, 9, 10}
                     
                     for _, value in ipairs(claimValues) do
                         pcall(function()
