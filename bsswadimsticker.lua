@@ -1665,7 +1665,7 @@ task.spawn(function()
         end
         task.wait()
     end
-end)
+end
 
 -- Loop 7: AutoUpgrade
 task.spawn(function()
@@ -2304,4 +2304,5 @@ task.spawn(function()
         end
         task.wait(5) -- Efficient check every 5 seconds
     end
+end)
 end)
