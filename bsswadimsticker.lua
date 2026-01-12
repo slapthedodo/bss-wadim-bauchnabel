@@ -1566,7 +1566,8 @@ task.spawn(function()
                         end
                     end
                     collectingTokensNow = false
-                else
+                end
+                elseif TargetSlimeBlob then
                     -- Ziel-Slime gefunden: tween zum Slime (Y fixed to targetY)
                     local targetPos = TargetSlimeBlob.Position
                     local adjustedTarget = Vector3.new(targetPos.X, targetY, targetPos.Z)
